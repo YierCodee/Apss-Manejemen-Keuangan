@@ -1,16 +1,53 @@
 "use client";
 
 import { SidebarNavItem } from "./SidebarItem";
-import { sidebarConfig, userProfile, logoutItem } from "@/config/sidebar.config";
+import { sidebarConfig } from "@/config/sidebar.config";
 import { LogOut, X } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useState } from "react";
+import type { Role } from "@/lib/permissions";
 
-export function Sidebar() {
-  const pathname = usePathname();
-  const isLogoutActive = pathname === "/logout";
+type SidebarUser = {
+  name: string;
+  email: string;
+  role: Role;
+};
+
+export function Sidebar({ user }: { user?: SidebarUser }) {
+  const router = useRouter();
   const { isOpen, close } = useSidebar();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const displayName = user?.name || "User";
+  const displayEmail = user?.email || "";
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (res.ok) {
+        router.push("/login");
+      } else {
+        alert("Gagal logout, silakan coba lagi");
+        setIsLoggingOut(false);
+      }
+    } catch {
+      alert("Terjadi kesalahan, silakan coba lagi");
+      setIsLoggingOut(false);
+    }
+  }
 
   return (
     <>
@@ -58,52 +95,55 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-          {sidebarConfig.map((section) => (
-            <div key={section.label}>
-              <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                {section.label}
-              </h3>
-              <ul className="space-y-2">
-                {section.items.map((item) => (
-                  <li key={item.href}>
-                    <SidebarNavItem
-                      label={item.label}
-                      href={item.href}
-                      iconName={item.icon}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {sidebarConfig.map((section) => {
+            const filteredItems = section.items.filter(
+              (item) => !item.roles || (user?.role && item.roles.includes(user.role))
+            );
+            if (filteredItems.length === 0) return null;
+            return (
+              <div key={section.label}>
+                <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  {section.label}
+                </h3>
+                <ul className="space-y-2">
+                  {filteredItems.map((item) => (
+                    <li key={item.href}>
+                      <SidebarNavItem
+                        label={item.label}
+                        href={item.href}
+                        iconName={item.icon}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </nav>
 
-        {/* User Profile Footer */}
-        <div className="border-t border-sidebar-border p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-foreground">
-              {userProfile.avatar}
+        {/* Bottom: User Info + Logout (single row) */}
+        <div className="border-t border-sidebar-border p-3 mt-auto">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+              {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">
-                {userProfile.name}
+              <p className="text-sm font-medium text-sidebar-foreground truncate leading-tight">
+                {displayName}
               </p>
-              <p className="text-xs text-muted-foreground truncate">
-                {userProfile.email}
+              <p className="text-xs text-muted-foreground truncate leading-tight">
+                {displayEmail}
               </p>
             </div>
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border hover:bg-red-50 hover:border-red-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isLoggingOut ? "Keluar..." : "Log out"}
+            >
+              <LogOut className="h-4 w-4 text-muted-foreground hover:text-red-600" />
+            </button>
           </div>
-          <Link
-            href={logoutItem.href}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isLogoutActive
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            }`}
-          >
-            <LogOut className="h-5 w-5 text-sidebar-icon" />
-            {logoutItem.label}
-          </Link>
         </div>
       </aside>
     </>

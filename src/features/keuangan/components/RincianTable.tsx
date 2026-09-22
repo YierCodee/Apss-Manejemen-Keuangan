@@ -1,88 +1,11 @@
 "use client";
 
 import { Search } from "lucide-react";
+import type { LaporanRincianItem } from "../types/keuangan.types";
 
-interface RincianItem {
-  nama: string;
-  deskripsi: string;
-  kategori: string;
-  kategoriColor: string;
-  kategoriBg: string;
-  prioritas: string;
-  prioritasColor: string;
-  prioritasBg: string;
-  progress: number;
-  jumlah: number;
-  realisasi: string;
+interface RincianTableProps {
+  data: LaporanRincianItem[];
 }
-
-const data: RincianItem[] = [
-  {
-    nama: "Alat Praktikum",
-    deskripsi: "Alat Laboratorium",
-    kategori: "Praktikum",
-    kategoriColor: "#064e3b",
-    kategoriBg: "#d1fae5",
-    prioritas: "OnTrack",
-    prioritasColor: "#064e3b",
-    prioritasBg: "#d1fae5",
-    progress: 83,
-    jumlah: 10,
-    realisasi: "Rp 500.000",
-  },
-  {
-    nama: "Skincare",
-    deskripsi: "Pembersih Wajah",
-    kategori: "Biaya Hidup",
-    kategoriColor: "#92400e",
-    kategoriBg: "#fef3c7",
-    prioritas: "High",
-    prioritasColor: "#dc2626",
-    prioritasBg: "#fee2e2",
-    progress: 83,
-    jumlah: 10,
-    realisasi: "Rp 500.000",
-  },
-  {
-    nama: "Transportasi",
-    deskripsi: "Bensin, Grab/Go",
-    kategori: "Operasional",
-    kategoriColor: "#1e40af",
-    kategoriBg: "#dbeafe",
-    prioritas: "Medium",
-    prioritasColor: "#d97706",
-    prioritasBg: "#fef3c7",
-    progress: 83,
-    jumlah: 10,
-    realisasi: "Rp 500.000",
-  },
-  {
-    nama: "Langganan AI Platform",
-    deskripsi: "ChatGPT Plus, Claude Pro, Midjourney",
-    kategori: "Langganan AI",
-    kategoriColor: "#7c3aed",
-    prioritas: "OnTrack",
-    prioritasColor: "#064e3b",
-    kategoriBg: "#ede9fe",
-    prioritasBg: "#d1fae5",
-    progress: 92,
-    jumlah: 3,
-    realisasi: "Rp 1.150.000",
-  },
-  {
-    nama: "Buku & Modul Kuliah",
-    deskripsi: "Buku Manajemen Bisnis & Referensi",
-    kategori: "Kuliah",
-    kategoriColor: "#0369a1",
-    kategoriBg: "#e0f2fe",
-    prioritas: "Hemat",
-    prioritasColor: "#064e3b",
-    prioritasBg: "#d1fae5",
-    progress: 48,
-    jumlah: 5,
-    realisasi: "Rp 450.000",
-  },
-];
 
 const tabs = [
   { label: "Semua Kategori", active: true },
@@ -91,7 +14,7 @@ const tabs = [
   { label: "Operasional", active: false },
 ];
 
-export function RincianTable() {
+export function RincianTable({ data }: RincianTableProps) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       {/* Header */}
@@ -101,7 +24,9 @@ export function RincianTable() {
             Rincian Evaluasi Pos Anggaran & Realisasi
           </h3>
           <p className="text-xs text-gray-400">
-            Tahun Anggaran 2024 - Kuartal 4 (Status Terkini)
+            {data.length > 0
+              ? `Total ${data.length} Pos Anggaran Aktif`
+              : "Belum ada data anggaran"}
           </p>
         </div>
 
@@ -134,100 +59,106 @@ export function RincianTable() {
 
       {/* Table */}
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[700px]">
-          <thead>
-            <tr className="border-b border-gray-100">
-              <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                NAMA BARANG / POS
-              </th>
-              <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                KATEGORI
-              </th>
-              <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                PRIORITAS
-              </th>
-              <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                PROGRESS REALISASI
-              </th>
-              <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                JUMLAH
-              </th>
-              <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                REALISASI DUKA
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((item, i) => (
-              <tr key={i} className="border-b border-gray-100">
-                <td className="px-4 py-3">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-gray-800">
-                      {item.nama}
-                    </span>
-                    <span className="text-[11px] text-gray-400">
-                      {item.deskripsi}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-3 py-3">
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                    style={{
-                      backgroundColor: item.kategoriBg,
-                      color: item.kategoriColor,
-                    }}
-                  >
-                    {item.kategori}
-                  </span>
-                </td>
-                <td className="px-3 py-3">
-                  <div className="flex justify-center">
+        {data.length > 0 ? (
+          <table className="w-full min-w-[700px]">
+            <thead>
+              <tr className="border-b border-gray-100">
+                <th className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  NAMA BARANG / POS
+                </th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  KATEGORI
+                </th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  PRIORITAS
+                </th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  PROGRESS REALISASI
+                </th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  JUMLAH
+                </th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  REALISASI
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item) => (
+                <tr key={item.id} className="border-b border-gray-100">
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-gray-800">
+                        {item.name}
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        {item.description}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">
                     <span
                       className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
                       style={{
-                        backgroundColor: item.prioritasBg,
-                        color: item.prioritasColor,
+                        backgroundColor: item.kategoriBg,
+                        color: item.kategoriColor,
                       }}
                     >
-                      {item.prioritas}
+                      {item.kategori}
                     </span>
-                  </div>
-                </td>
-                <td className="px-3 py-3">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="h-2 w-full max-w-[80px] rounded-full bg-gray-100">
-                      <div
-                        className="h-full rounded-full bg-[#064e3b]"
-                        style={{ width: `${item.progress}%` }}
-                      />
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex justify-center">
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={{
+                          backgroundColor: item.prioritasBg,
+                          color: item.prioritasColor,
+                        }}
+                      >
+                        {item.prioritas}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-gray-500">
-                      {item.progress}%
-                    </span>
-                  </div>
-                </td>
-                <td className="px-3 py-3 text-center text-xs text-gray-700">
-                  {item.jumlah}
-                </td>
-                <td className="px-3 py-3 text-right text-xs font-bold text-gray-600">
-                  {item.realisasi}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="h-2 w-full max-w-[80px] rounded-full bg-gray-100">
+                        <div
+                          className="h-full rounded-full bg-[#064e3b]"
+                          style={{ width: `${Math.min(item.progress, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-gray-500">
+                        {item.progress}%
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-center text-xs text-gray-700">
+                    {item.jumlah}
+                  </td>
+                  <td className="px-3 py-3 text-right text-xs font-bold text-gray-600">
+                    {item.realisasi}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16">
+            <p className="text-sm font-medium text-gray-500">Belum ada data anggaran</p>
+            <p className="mt-1 text-xs text-gray-400">Buat proyek RAB untuk mulai mengelola anggaran</p>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
-      <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
-        <span className="text-[11px] text-gray-400">
-          Menampilkan 5 dari 18 Pos Anggaran Aktif
-        </span>
-        <button className="text-xs font-semibold text-[#064e3b] hover:underline">
-          Lihat Semua 18 Pos Anggaran RAB Q4 →
-        </button>
-      </div>
+      {data.length > 0 && (
+        <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+          <span className="text-[11px] text-gray-400">
+            Menampilkan {data.length} Pos Anggaran Aktif
+          </span>
+        </div>
+      )}
     </div>
   );
 }

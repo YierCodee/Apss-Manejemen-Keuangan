@@ -1,60 +1,176 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ChevronDown, Check, Calendar, Pencil } from "lucide-react";
+import { X, ChevronDown, Check, Calendar, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type {
+  TransactionRecord,
+  CategoryInfo,
+  TransactionFormData,
+} from "@/features/keuangan/types/keuangan.types";
 
 interface RecordTransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave: (data: TransactionFormData) => Promise<void>;
+  initialData?: TransactionRecord | null;
+  categories: CategoryInfo[];
 }
 
-type TransactionType = "pengeluaran" | "pemasukan";
-
-const categories = [
-  { id: "transportasi", label: "Transportasi", emoji: "" },
-  { id: "makanan", label: "Makanan", emoji: "" },
-  { id: "layanan", label: "Layanan", emoji: "" },
-  { id: "liburan", label: "Liburan", emoji: "" },
-  { id: "kuliah", label: "Kuliah", emoji: "" },
-];
-
 const paymentMethods = [
-  { id: "gopay", label: "Gopay", sublabel: "Aktif", initial: "G", color: "#10B981" },
-  { id: "nevbank", label: "NevBank", sublabel: "Primary", initial: "NB", color: "#064E3B" },
-  { id: "transfer", label: "Transfer", sublabel: "Bank", initial: "", color: "#6B7280" },
+  { id: "GOPAY", label: "Gopay", initial: "G", color: "#10B981" },
+  { id: "NEVBANK_PRIMARY", label: "NevBank", initial: "NB", color: "#064E3B" },
+  { id: "BANK_TRANSFER", label: "Transfer", initial: "TF", color: "#6B7280" },
+  { id: "QRIS", label: "QRIS", initial: "QR", color: "#8B5CF6" },
+  { id: "OVO", label: "OVO", initial: "O", color: "#6366F1" },
+  { id: "DANA", label: "Dana", initial: "D", color: "#3B82F6" },
+  { id: "SHOPEEPAY", label: "ShopeePay", initial: "SP", color: "#EF4444" },
+  { id: "CASH", label: "Tunai", initial: "C", color: "#64748B" },
 ];
+
+const defaultAccountOptions = [
+  "Tunai",
+  "Mandiri",
+  "BCA",
+  "BRI",
+  "BNI",
+  "BSI",
+  "Jenius",
+  "CIMB Niaga",
+  "Muamalat",
+  "GoPay",
+  "OVO",
+  "Dana",
+  "ShopeePay",
+  "LinkAja",
+];
+
+function getInitialFormState(initialData?: TransactionRecord | null) {
+  if (initialData) {
+    return {
+      transactionType: initialData.type.toUpperCase() as "PEMASUKAN" | "PENGELUARAN",
+      transactionName: initialData.name,
+      selectedCategoryId: initialData.categoryId || "",
+      quantity: String(initialData.quantity),
+      price: String(initialData.amount),
+      accountName: initialData.accountName || "",
+      selectedPaymentMethod: initialData.paymentMethod,
+      date: initialData.date.split("T")[0],
+      notes: initialData.notes || "",
+    };
+  }
+  return {
+    transactionType: "PENGELUARAN" as const,
+    transactionName: "",
+    selectedCategoryId: "",
+    quantity: "1",
+    price: "",
+    accountName: "",
+    selectedPaymentMethod: "GOPAY",
+    date: new Date().toISOString().split("T")[0],
+    notes: "",
+  };
+}
 
 export default function RecordTransactionModal({
   isOpen,
   onClose,
+  onSave,
+  initialData,
+  categories,
 }: RecordTransactionModalProps) {
-  const [transactionType, setTransactionType] =
-    useState<TransactionType>("pengeluaran");
-  const [transactionName, setTransactionName] = useState("Ayam Geprek");
-  const [selectedCategory, setSelectedCategory] = useState("makanan");
+  const isEditing = !!initialData;
+
+  const [transactionType, setTransactionType] = useState<
+    "PEMASUKAN" | "PENGELUARAN"
+  >("PENGELUARAN");
+  const [transactionName, setTransactionName] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [quantity, setQuantity] = useState("1");
-  const [price, setPrice] = useState("15.000");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState("gopay");
-  const [date, setDate] = useState("Kamis, 09:12 | 19-10-2026");
+  const [price, setPrice] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("GOPAY");
+  const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+  const [accountSearch, setAccountSearch] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const accountInputRef = useRef<HTMLInputElement>(null);
+  const accountDropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleSave = () => {
-    // Here you would handle the form submission
-    console.log({
-      transactionType,
-      transactionName,
-      selectedCategory,
-      quantity,
-      price,
-      selectedPaymentMethod,
-      date,
-      notes,
-    });
-    onClose();
+  // Populate form when editing
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const formState = getInitialFormState(initialData);
+    setTransactionType(formState.transactionType);
+    setTransactionName(formState.transactionName);
+    setSelectedCategoryId(formState.selectedCategoryId);
+    setQuantity(formState.quantity);
+    setPrice(formState.price);
+    setAccountName(formState.accountName);
+    setSelectedPaymentMethod(formState.selectedPaymentMethod);
+    setDate(formState.date);
+    setNotes(formState.notes);
+  }, [initialData, isOpen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Close account dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        accountDropdownRef.current &&
+        !accountDropdownRef.current.contains(e.target as Node)
+      ) {
+        setShowAccountDropdown(false);
+      }
+    }
+    if (showAccountDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showAccountDropdown]);
+
+  const filteredCategories = categories.filter((c) => {
+    if (transactionType === "PEMASUKAN") return c.type === "PEMASUKAN";
+    return c.type === "PENGELUARAN";
+  });
+
+  const selectedCategory = filteredCategories.find(
+    (c) => c.id === selectedCategoryId,
+  );
+
+  const filteredAccountOptions = defaultAccountOptions.filter((opt) =>
+    opt.toLowerCase().includes(accountSearch.toLowerCase()),
+  );
+
+  const handleAccountSelect = (name: string) => {
+    setAccountName(name);
+    setAccountSearch("");
+    setShowAccountDropdown(false);
+  };
+
+  const handleSave = async () => {
+    if (!transactionName.trim() || !price) return;
+
+    setIsSaving(true);
+    try {
+      await onSave({
+        name: transactionName.trim(),
+        type: transactionType,
+        amount: parseFloat(price.replace(/\./g, "").replace(",", ".")),
+        quantity: parseInt(quantity, 10) || 1,
+        accountName: accountName.trim() || null,
+        categoryId: selectedCategoryId || null,
+        paymentMethod: selectedPaymentMethod,
+        date: date ? new Date(date).toISOString() : new Date().toISOString(),
+        notes: notes.trim() || null,
+      });
+      onClose();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -84,7 +200,7 @@ export default function RecordTransactionModal({
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-gray-900">
-                    Catat Transaksi
+                    {isEditing ? "Edit Transaksi" : "Catat Transaksi"}
                   </h2>
                   <div className="flex h-2 w-2 items-center justify-center rounded-full bg-[#064E3B]">
                     <div className="h-1 w-1 rounded-full bg-white" />
@@ -96,7 +212,8 @@ export default function RecordTransactionModal({
               </div>
               <button
                 onClick={onClose}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+                disabled={isSaving}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600 disabled:opacity-50"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -114,28 +231,28 @@ export default function RecordTransactionModal({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => setTransactionType("pengeluaran")}
+                  onClick={() => setTransactionType("PENGELUARAN")}
                   className={cn(
                     "flex items-center gap-3 rounded-xl border p-3.5 transition-all",
-                    transactionType === "pengeluaran"
+                    transactionType === "PENGELUARAN"
                       ? "border-red-200 bg-red-50 shadow-sm"
-                      : "border-gray-200 bg-white hover:bg-gray-50"
+                      : "border-gray-200 bg-white hover:bg-gray-50",
                   )}
                 >
                   <div
                     className={cn(
                       "flex h-9 w-9 items-center justify-center rounded-full",
-                      transactionType === "pengeluaran"
+                      transactionType === "PENGELUARAN"
                         ? "bg-red-100"
-                        : "bg-gray-100"
+                        : "bg-gray-100",
                     )}
                   >
                     <span
                       className={cn(
                         "text-sm",
-                        transactionType === "pengeluaran"
+                        transactionType === "PENGELUARAN"
                           ? "text-red-600"
-                          : "text-gray-500"
+                          : "text-gray-500",
                       )}
                     >
                       ↙
@@ -145,9 +262,9 @@ export default function RecordTransactionModal({
                     <span
                       className={cn(
                         "text-sm font-semibold",
-                        transactionType === "pengeluaran"
+                        transactionType === "PENGELUARAN"
                           ? "text-red-700"
-                          : "text-gray-700"
+                          : "text-gray-700",
                       )}
                     >
                       Pengeluaran
@@ -160,12 +277,12 @@ export default function RecordTransactionModal({
                     <div
                       className={cn(
                         "flex h-5 w-5 items-center justify-center rounded-full border-2",
-                        transactionType === "pengeluaran"
+                        transactionType === "PENGELUARAN"
                           ? "border-red-500 bg-red-500"
-                          : "border-gray-300"
+                          : "border-gray-300",
                       )}
                     >
-                      {transactionType === "pengeluaran" && (
+                      {transactionType === "PENGELUARAN" && (
                         <Check className="h-3 w-3 text-white" />
                       )}
                     </div>
@@ -173,28 +290,28 @@ export default function RecordTransactionModal({
                 </button>
 
                 <button
-                  onClick={() => setTransactionType("pemasukan")}
+                  onClick={() => setTransactionType("PEMASUKAN")}
                   className={cn(
                     "flex items-center gap-3 rounded-xl border p-3.5 transition-all",
-                    transactionType === "pemasukan"
+                    transactionType === "PEMASUKAN"
                       ? "border-emerald-200 bg-emerald-50 shadow-sm"
-                      : "border-gray-200 bg-white hover:bg-gray-50"
+                      : "border-gray-200 bg-white hover:bg-gray-50",
                   )}
                 >
                   <div
                     className={cn(
                       "flex h-9 w-9 items-center justify-center rounded-full",
-                      transactionType === "pemasukan"
+                      transactionType === "PEMASUKAN"
                         ? "bg-emerald-100"
-                        : "bg-gray-100"
+                        : "bg-gray-100",
                     )}
                   >
                     <span
                       className={cn(
                         "text-sm",
-                        transactionType === "pemasukan"
+                        transactionType === "PEMASUKAN"
                           ? "text-emerald-600"
-                          : "text-gray-500"
+                          : "text-gray-500",
                       )}
                     >
                       ↗
@@ -204,9 +321,9 @@ export default function RecordTransactionModal({
                     <span
                       className={cn(
                         "text-sm font-semibold",
-                        transactionType === "pemasukan"
+                        transactionType === "PEMASUKAN"
                           ? "text-emerald-700"
-                          : "text-gray-700"
+                          : "text-gray-700",
                       )}
                     >
                       Pemasukan
@@ -219,12 +336,12 @@ export default function RecordTransactionModal({
                     <div
                       className={cn(
                         "flex h-5 w-5 items-center justify-center rounded-full border-2",
-                        transactionType === "pemasukan"
+                        transactionType === "PEMASUKAN"
                           ? "border-emerald-500 bg-emerald-500"
-                          : "border-gray-300"
+                          : "border-gray-300",
                       )}
                     >
-                      {transactionType === "pemasukan" && (
+                      {transactionType === "PEMASUKAN" && (
                         <Check className="h-3 w-3 text-white" />
                       )}
                     </div>
@@ -238,17 +355,108 @@ export default function RecordTransactionModal({
               <label className="mb-1.5 block text-xs font-semibold text-gray-900">
                 Nama Transaksi <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={transactionName}
-                  onChange={(e) => setTransactionName(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:border-[#064E3B] focus:outline-none focus:ring-1 focus:ring-[#064E3B]"
-                  placeholder="Masukkan nama transaksi"
-                />
-                <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <Pencil className="h-4 w-4" />
+              <input
+                type="text"
+                value={transactionName}
+                onChange={(e) => setTransactionName(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors placeholder:text-gray-400 focus:border-[#064E3B] focus:outline-none focus:ring-1 focus:ring-[#064E3B]"
+                placeholder="Masukkan nama transaksi"
+              />
+            </div>
+
+            {/* Account Selection - Dropdown + Free Text */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-semibold text-gray-900">
+                Akun <span className="text-red-500">*</span>
+              </label>
+              <div className="relative" ref={accountDropdownRef}>
+                <button
+                  onClick={() => {
+                    setShowAccountDropdown(!showAccountDropdown);
+                    setTimeout(() => accountInputRef.current?.focus(), 0);
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors hover:bg-gray-50"
+                >
+                  <span>{accountName || "Pilih akun"}</span>
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
                 </button>
+
+                <AnimatePresence>
+                  {showAccountDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute left-0 right-0 top-full z-10 mt-1 rounded-xl border border-gray-200 bg-white p-2 shadow-lg max-h-64 overflow-y-auto"
+                    >
+                      {/* Search / Free text input */}
+                      <div className="px-2 pb-2">
+                        <input
+                          ref={accountInputRef}
+                          type="text"
+                          value={accountSearch}
+                          onChange={(e) => setAccountSearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && accountSearch.trim()) {
+                              handleAccountSelect(accountSearch.trim());
+                            }
+                          }}
+                          className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#064E3B] focus:outline-none focus:ring-1 focus:ring-[#064E3B]"
+                          placeholder="Ketik nama akun..."
+                        />
+                      </div>
+
+                      {/* Clear selection */}
+                      {accountName && (
+                        <button
+                          onClick={() => handleAccountSelect("")}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+                        >
+                          <span>Hapus pilihan</span>
+                        </button>
+                      )}
+
+                      {/* Options */}
+                      {filteredAccountOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => handleAccountSelect(opt)}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          <span>{opt}</span>
+                          {accountName === opt && (
+                            <Check className="ml-auto h-4 w-4 text-[#064E3B]" />
+                          )}
+                        </button>
+                      ))}
+
+                      {/* Custom input option */}
+                      {accountSearch.trim() &&
+                        !defaultAccountOptions.some(
+                          (opt) =>
+                            opt.toLowerCase() === accountSearch.toLowerCase(),
+                        ) && (
+                          <button
+                            onClick={() =>
+                              handleAccountSelect(accountSearch.trim())
+                            }
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#064E3B] hover:bg-gray-100"
+                          >
+                            <span>
+                              Gunakan &quot;{accountSearch.trim()}&quot;
+                            </span>
+                          </button>
+                        )}
+
+                      {filteredAccountOptions.length === 0 &&
+                        !accountSearch.trim() && (
+                          <p className="px-3 py-2 text-sm text-gray-400">
+                            Tidak ada opsi
+                          </p>
+                        )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -258,25 +466,18 @@ export default function RecordTransactionModal({
                 <label className="text-xs font-semibold text-gray-900">
                   Kategori
                 </label>
-                <button className="text-xs font-semibold text-[#064E3B] hover:underline">
-                  + Tambah Baru
-                </button>
               </div>
 
-              {/* Category Dropdown */}
               <div className="relative mb-3">
                 <button
                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                   className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors hover:bg-gray-50"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-base">
-                      {categories.find((c) => c.id === selectedCategory)?.emoji}
-                    </span>
-                    <span>
-                      {categories.find((c) => c.id === selectedCategory)?.label}{" "}
-                      (Food & Beverage)
-                    </span>
+                    {selectedCategory?.icon && (
+                      <span className="text-base">{selectedCategory.icon}</span>
+                    )}
+                    <span>{selectedCategory?.name || "Pilih kategori"}</span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-gray-400" />
                 </button>
@@ -287,20 +488,34 @@ export default function RecordTransactionModal({
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute left-0 right-0 top-full z-10 mt-1 rounded-xl border border-gray-200 bg-white p-2 shadow-lg"
+                      className="absolute left-0 right-0 top-full z-10 mt-1 rounded-xl border border-gray-200 bg-white p-2 shadow-lg max-h-48 overflow-y-auto"
                     >
-                      {categories.map((category) => (
+                      <button
+                        onClick={() => {
+                          setSelectedCategoryId("");
+                          setShowCategoryDropdown(false);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
+                      >
+                        <span>Tanpa kategori</span>
+                        {!selectedCategoryId && (
+                          <Check className="ml-auto h-4 w-4 text-[#064E3B]" />
+                        )}
+                      </button>
+                      {filteredCategories.map((cat) => (
                         <button
-                          key={category.id}
+                          key={cat.id}
                           onClick={() => {
-                            setSelectedCategory(category.id);
+                            setSelectedCategoryId(cat.id);
                             setShowCategoryDropdown(false);
                           }}
                           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
-                          <span className="text-base">{category.emoji}</span>
-                          <span>{category.label}</span>
-                          {selectedCategory === category.id && (
+                          {cat.icon && (
+                            <span className="text-base">{cat.icon}</span>
+                          )}
+                          <span>{cat.name}</span>
+                          {selectedCategoryId === cat.id && (
                             <Check className="ml-auto h-4 w-4 text-[#064E3B]" />
                           )}
                         </button>
@@ -308,24 +523,6 @@ export default function RecordTransactionModal({
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
-
-              {/* Quick Category Buttons */}
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                      selectedCategory === category.id
-                        ? "bg-[#064E3B] text-white shadow-sm"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    )}
-                  >
-                    {category.label}
-                  </button>
-                ))}
               </div>
             </div>
 
@@ -336,7 +533,8 @@ export default function RecordTransactionModal({
                   Jumlah
                 </label>
                 <input
-                  type="text"
+                  type="number"
+                  min="1"
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors focus:border-[#064E3B] focus:outline-none focus:ring-1 focus:ring-[#064E3B]"
@@ -352,9 +550,15 @@ export default function RecordTransactionModal({
                   </span>
                   <input
                     type="text"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    // 1. Mengubah tampilan angka menjadi format ribuan dengan titik (.)
+                    value={price ? parseInt(price).toLocaleString("id-ID") : ""}
+                    // 2. Membersihkan titik/huruf saat diketik, lalu simpan angka bersihnya ke state
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, "");
+                      setPrice(raw);
+                    }}
                     className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-sm text-gray-900 transition-colors focus:border-[#064E3B] focus:outline-none focus:ring-1 focus:ring-[#064E3B]"
+                    placeholder="0"
                   />
                 </div>
               </div>
@@ -365,56 +569,49 @@ export default function RecordTransactionModal({
               <label className="mb-2 block text-xs font-semibold text-gray-900">
                 Metode Pembayaran
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-4 gap-2">
                 {paymentMethods.map((method) => (
                   <button
                     key={method.id}
                     onClick={() => setSelectedPaymentMethod(method.id)}
                     className={cn(
-                      "flex flex-col items-center gap-2 rounded-xl border p-4 transition-all",
+                      "flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all",
                       selectedPaymentMethod === method.id
                         ? "border-[#064E3B] bg-[#064E3B]/5 shadow-sm"
-                        : "border-gray-200 bg-white hover:bg-gray-50"
+                        : "border-gray-200 bg-white hover:bg-gray-50",
                     )}
                   >
                     <div
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white",
+                        "flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white",
                         selectedPaymentMethod === method.id
                           ? "bg-[#064E3B]"
-                          : "bg-gray-200"
+                          : "bg-gray-200",
                       )}
                     >
                       {method.initial}
                     </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-xs font-semibold text-gray-700">
-                        {method.label}
-                      </span>
-                      <span className="text-[10px] text-gray-400">
-                        {method.sublabel}
-                      </span>
-                    </div>
+                    <span className="text-[10px] font-semibold text-gray-700">
+                      {method.label}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Date and Time */}
+            {/* Date */}
             <div className="mb-4">
               <label className="mb-1.5 block text-xs font-semibold text-gray-900">
-                Tanggal & Waktu
+                Tanggal
               </label>
               <div className="relative">
                 <input
-                  type="text"
+                  type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors focus:border-[#064E3B] focus:outline-none focus:ring-1 focus:ring-[#064E3B]"
                 />
-                <button className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <Calendar className="h-4 w-4" />
-                </button>
+                <Calendar className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
             </div>
 
@@ -437,16 +634,22 @@ export default function RecordTransactionModal({
             <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
               <button
                 onClick={onClose}
-                className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                disabled={isSaving}
+                className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
               >
                 Batal
               </button>
               <button
                 onClick={handleSave}
-                className="flex items-center gap-2 rounded-xl bg-[#064E3B] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#044A38]"
+                disabled={isSaving || !transactionName.trim() || !price}
+                className="flex items-center gap-2 rounded-xl bg-[#064E3B] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#044A38] disabled:opacity-50"
               >
-                <Check className="h-4 w-4" />
-                Simpan Transaksi
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                {isEditing ? "Update Transaksi" : "Simpan Transaksi"}
               </button>
             </div>
           </motion.div>

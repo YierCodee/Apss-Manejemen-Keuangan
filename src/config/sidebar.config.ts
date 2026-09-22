@@ -1,7 +1,11 @@
+import type { Role } from "@/lib/permissions";
+
 export interface SidebarNavItem {
   label: string;
   href: string;
   icon: string;
+  /** Roles that can see this item. Empty/undefined = all roles. */
+  roles?: Role[];
 }
 
 export interface SidebarSection {
@@ -67,6 +71,7 @@ export const sidebarConfig: SidebarSection[] = [
         label: "User Management",
         href: "/admin/user-management",
         icon: "Users",
+        roles: ["super_admin"],
       },
     ],
   },

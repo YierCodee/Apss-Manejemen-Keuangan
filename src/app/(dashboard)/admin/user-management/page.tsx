@@ -1,115 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Download,
-  UserPlus,
   Users,
   Package,
   CreditCard,
   Shield,
   History,
-  Search,
   MoreVertical,
-  ChevronLeft,
-  ChevronRight,
   CheckCircle,
   HelpCircle,
-  Save,
-  RotateCcw,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Role } from "@/lib/permissions";
 
-// ─── Mock Data ───────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
 
-const users = [
-  {
-    initials: "DW",
-    name: "Dorothy Watkins",
-    badge: "Super Admin",
-    email: "dorothy@nevbank.cc",
-    position: "Operations Lead",
-    role: "Operations",
-    status: "Aktif",
-    color: "bg-[#175643]",
-  },
-  {
-    initials: "RH",
-    name: "Rian Hidayat",
-    badge: "Bendahara Utama",
-    email: "rian.h@nevbank.cc",
-    position: "Bendahara Utama",
-    role: "Treasurer (Bendahara)",
-    status: "Aktif",
-    color: "bg-[#175643]",
-  },
-  {
-    initials: "SA",
-    name: "Sarah Amalia",
-    badge: "Manajer Gudang",
-    email: "sarah.a@nevbank.cc",
-    position: "Manajer Gudang",
-    role: "Operations",
-    status: "Aktif",
-    color: "bg-[#175643]",
-  },
-  {
-    initials: "BW",
-    name: "Budi Wicaksono",
-    badge: null,
-    email: "budi.w@nevbank.cc",
-    position: "Lead Campaign & Ads",
-    role: "Marketing",
-    status: "Aktif",
-    color: "bg-[#175643]",
-  },
-  {
-    initials: "CP",
-    name: "Clarissa Putri",
-    badge: null,
-    email: "clarissa.p@nevbank.cc",
-    position: "Staff Anggaran RAB",
-    role: "Treasurer",
-    status: "Aktif",
-    color: "bg-[#175643]",
-  },
-  {
-    initials: "DP",
-    name: "Dimas Pratama",
-    badge: null,
-    email: "dimas.p@nevbank.cc",
-    position: "Ekspedisi & Armada",
-    role: "Operations",
-    status: "Verifikasi",
-    color: "bg-[#175643]",
-  },
-];
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
 
-const statCards = [
-  {
-    label: "Total Pengguna",
-    value: "38",
-    unit: "Anggota",
-    icon: Users,
-    description: "Tersebar di 3 departemen utama",
-  },
-  {
-    label: "Operations",
-    labelSub: "Operasional",
-    value: "14",
-    unit: "Anggota",
-    icon: Package,
-    description: "Akses stok, transaksi logistik & kas harian",
-  },
-  {
-    label: "Treasurer",
-    labelSub: "Bendahara",
-    value: "8",
-    unit: "Anggota",
-    icon: CreditCard,
-    description: "Approval transfer dana, RAB & saldo utama",
-  },
-];
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+const ROLE_LABELS: Record<Role, string> = {
+  super_admin: "Super Admin",
+  bendahara: "Bendahara",
+  operasional: "Operasional",
+  pemasaran: "Pemasaran",
+};
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function getRoleColor(role: Role): string {
+  const colors: Record<Role, string> = {
+    super_admin: "bg-[#175643]",
+    bendahara: "bg-blue-600",
+    operasional: "bg-amber-600",
+    pemasaran: "bg-purple-600",
+  };
+  return colors[role];
+}
+
+// ─── Permission Matrix Data ─────────────────────────────────────────────────
 
 const permissionModules = [
   {
@@ -148,17 +95,136 @@ const permissionModules = [
   },
 ];
 
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Page ───────────────────────────────────────────────────────────────────
 
 export default function UserManagementPage() {
   const [activeTab, setActiveTab] = useState(0);
-  const [roleFilter, setRoleFilter] = useState("Semua Peran");
-  const [statusFilter, setStatusFilter] = useState("Semua Status");
-  const [permRole, setPermRole] = useState("Operations");
+  const [roleFilter, setRoleFilter] = useState("Semua");
+  const [statusFilter, setStatusFilter] = useState("Semua");
+  const [permRole, setPermRole] = useState<Role>("operasional");
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("/api/admin/users");
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setUsers(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleRoleChange(userId: string, newRole: Role) {
+    setUpdatingId(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (res.ok) {
+        await fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Gagal mengubah role");
+      }
+    } catch {
+      alert("Terjadi kesalahan");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function handleToggleActive(userId: string, currentActive: boolean) {
+    setUpdatingId(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !currentActive }),
+      });
+      if (res.ok) {
+        await fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Gagal mengubah status");
+      }
+    } catch {
+      alert("Terjadi kesalahan");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  // Filter users
+  const filteredUsers = users.filter((user) => {
+    if (roleFilter !== "Semua" && user.role !== roleFilter) return false;
+    if (statusFilter === "Aktif" && !user.isActive) return false;
+    if (statusFilter === "Nonaktif" && user.isActive) return false;
+    return true;
+  });
+
+  // Stats
+  const totalUsers = users.length;
+  const activeUsers = users.filter((u) => u.isActive).length;
+  const roleCounts = users.reduce(
+    (acc, u) => {
+      acc[u.role] = (acc[u.role] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  const statCards = [
+    {
+      label: "Total Pengguna",
+      value: totalUsers,
+      unit: "Anggota",
+      icon: Users,
+      description: `${activeUsers} aktif dari ${totalUsers} total`,
+    },
+    {
+      label: "Operasional",
+      value: roleCounts["operasional"] || 0,
+      unit: "Anggota",
+      icon: Package,
+      description: "Akses stok, transaksi logistik & kas harian",
+    },
+    {
+      label: "Bendahara",
+      value: roleCounts["bendahara"] || 0,
+      unit: "Anggota",
+      icon: CreditCard,
+      description: "Approval transfer dana, RAB & saldo utama",
+    },
+  ];
 
   const tabs = [
-    { label: "Daftar Pengguna (38)", icon: Shield },
-    { label: "Pengaturan Hak Akses Peran (Permission Matrix)", icon: Shield },
+    { label: `Daftar Pengguna (${totalUsers})`, icon: Shield },
+    { label: "Pengaturan Hak Akses Peran", icon: Shield },
     { label: "Riwayat Aktivitas & Audit", icon: History },
   ];
 
@@ -173,18 +239,13 @@ export default function UserManagementPage() {
                 User Management
               </h1>
               <p className="text-sm text-gray-500">
-                Kelola akun anggota tim dan atur hak akses peran (Operations,
-                Treasurer, Marketing) secara terpusat
+                Kelola akun anggota tim dan atur hak akses peran secara terpusat
               </p>
             </div>
             <div className="flex items-center gap-3">
               <button className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
                 <Download className="h-4 w-4" />
                 Unduh Log Audit
-              </button>
-              <button className="flex items-center gap-2 rounded-lg bg-[#175643] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1B5E47]">
-                <UserPlus className="h-4 w-4" />
-                Tambah Pengguna Baru
               </button>
             </div>
           </div>
@@ -203,9 +264,6 @@ export default function UserManagementPage() {
                       <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
                         {card.label}
                       </p>
-                      {card.labelSub && (
-                        <p className="text-xs text-gray-400">{card.labelSub}</p>
-                      )}
                     </div>
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F0FCF7]">
                       <Icon className="h-5 w-5 text-[#175643]" />
@@ -252,44 +310,42 @@ export default function UserManagementPage() {
           {/* ── Tab 0: Daftar Pengguna ─────────────────────────────── */}
           {activeTab === 0 && (
             <div className="flex flex-col gap-5">
-              {/* Section Header */}
               <div>
                 <h2 className="text-lg font-bold text-[#0f172a]">
                   Daftar Anggota & Penugasan Peran
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Kelola wewenang akun, autentikasi 2FA, dan status operasional
+                  Kelola wewenang akun dan status operasional
                 </p>
               </div>
 
               {/* Filters */}
               <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-500">Tampilan:</span>
+                <span className="text-sm text-gray-500">Filter:</span>
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
                   className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#175643]/20 focus:border-[#175643]"
                 >
-                  <option>Semua Peran</option>
-                  <option>Operations</option>
-                  <option>Treasurer (Bendahara)</option>
-                  <option>Marketing</option>
+                  <option value="Semua">Semua Peran</option>
+                  <option value="super_admin">Super Admin</option>
+                  <option value="bendahara">Bendahara</option>
+                  <option value="operasional">Operasional</option>
+                  <option value="pemasaran">Pemasaran</option>
                 </select>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#175643]/20 focus:border-[#175643]"
                 >
-                  <option>Semua Status</option>
-                  <option>Aktif</option>
-                  <option>Menunggu Verifikasi</option>
-                  <option>Ditangguhkan</option>
+                  <option value="Semua">Semua Status</option>
+                  <option value="Aktif">Aktif</option>
+                  <option value="Nonaktif">Nonaktif</option>
                 </select>
               </div>
 
               {/* User Table */}
               <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-                {/* Table Header */}
                 <div className="flex items-center gap-6 border-b border-gray-200 bg-gray-50/60 px-5 py-2.5">
                   <div className="w-10 shrink-0" />
                   <div className="w-[180px] text-xs font-semibold uppercase tracking-wider text-gray-400">
@@ -299,7 +355,7 @@ export default function UserManagementPage() {
                     Email
                   </div>
                   <div className="w-[160px] text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    Access rights
+                    Role
                   </div>
                   <div className="w-[110px] text-xs font-semibold uppercase tracking-wider text-gray-400">
                     Status
@@ -307,114 +363,96 @@ export default function UserManagementPage() {
                   <div className="ml-auto w-8" />
                 </div>
 
-                {/* Table Body */}
                 <div className="divide-y divide-gray-100">
-                  {users.map((user) => (
-                    <div
-                      key={user.initials + user.name}
-                      className="flex items-center gap-6 px-5 py-3.5 transition-colors hover:bg-gray-50"
-                    >
-                      {/* Avatar */}
+                  {loading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : filteredUsers.length === 0 ? (
+                    <div className="flex items-center justify-center py-12 text-sm text-gray-500">
+                      Tidak ada pengguna ditemukan
+                    </div>
+                  ) : (
+                    filteredUsers.map((user) => (
                       <div
-                        className={cn(
-                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white",
-                          user.color
-                        )}
+                        key={user.id}
+                        className="flex items-center gap-6 px-5 py-3.5 transition-colors hover:bg-gray-50"
                       >
-                        {user.initials}
-                      </div>
+                        <div
+                          className={cn(
+                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white",
+                            getRoleColor(user.role)
+                          )}
+                        >
+                          {getInitials(user.name)}
+                        </div>
 
-                      {/* Name + Badge */}
-                      <div className="w-[180px]">
-                        <div className="flex items-center gap-2">
+                        <div className="w-[180px]">
                           <span className="truncate text-sm font-medium text-[#0f172a]">
                             {user.name}
                           </span>
-                          {user.badge && (
-                            <span className="shrink-0 inline-flex items-center rounded-full bg-[#F0FCF7] px-2 py-0.5 text-[10px] font-semibold text-[#175643]">
-                              {user.badge}
-                            </span>
-                          )}
                         </div>
-                      </div>
 
-                      {/* Email + Position */}
-                      <div className="w-[220px]">
-                        <p className="truncate text-sm text-gray-600">
-                          {user.email}
-                        </p>
-                        <p className="truncate text-xs text-gray-400">
-                          {user.position}
-                        </p>
-                      </div>
+                        <div className="w-[220px]">
+                          <p className="truncate text-sm text-gray-600">
+                            {user.email}
+                          </p>
+                        </div>
 
-                      {/* Role */}
-                      <div className="w-[160px]">
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
-                          {user.role}
-                        </span>
-                      </div>
+                        <div className="w-[160px]">
+                          <select
+                            value={user.role}
+                            onChange={(e) =>
+                              handleRoleChange(user.id, e.target.value as Role)
+                            }
+                            disabled={updatingId === user.id}
+                            className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#175643]/20 focus:border-[#175643] disabled:opacity-50"
+                          >
+                            <option value="super_admin">Super Admin</option>
+                            <option value="bendahara">Bendahara</option>
+                            <option value="operasional">Operasional</option>
+                            <option value="pemasaran">Pemasaran</option>
+                          </select>
+                        </div>
 
-                      {/* Status */}
-                      <div className="w-[110px]">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1.5 text-sm font-medium",
-                            user.status === "Aktif"
-                              ? "text-[#175643]"
-                              : "text-amber-600"
-                          )}
-                        >
-                          <span
+                        <div className="w-[110px]">
+                          <button
+                            onClick={() => handleToggleActive(user.id, user.isActive)}
+                            disabled={updatingId === user.id}
                             className={cn(
-                              "h-1.5 w-1.5 rounded-full",
-                              user.status === "Aktif"
-                                ? "bg-[#175643]"
-                                : "bg-amber-500"
+                              "inline-flex items-center gap-1.5 text-sm font-medium transition-colors disabled:opacity-50",
+                              user.isActive
+                                ? "text-[#175643] hover:text-[#1B5E47]"
+                                : "text-gray-400 hover:text-gray-600"
                             )}
-                          />
-                          {user.status}
-                        </span>
-                      </div>
+                          >
+                            <span
+                              className={cn(
+                                "h-1.5 w-1.5 rounded-full",
+                                user.isActive ? "bg-[#175643]" : "bg-gray-300"
+                              )}
+                            />
+                            {user.isActive ? "Aktif" : "Nonaktif"}
+                          </button>
+                        </div>
 
-                      {/* Actions */}
-                      <button className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
+                        <button className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600">
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 
-              {/* Pagination */}
+              {/* Pagination info */}
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-500">
-                  Menampilkan 6 dari 38 pengguna
+                  Menampilkan {filteredUsers.length} dari {totalUsers} pengguna
                 </p>
-                <div className="flex items-center gap-1">
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100">
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  {[1, 2, 3].map((page) => (
-                    <button
-                      key={page}
-                      className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium transition-colors",
-                        page === 1
-                          ? "bg-[#175643] text-white"
-                          : "text-gray-600 hover:bg-gray-100"
-                      )}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100">
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
               </div>
 
-              {/* ── Security Policy ──────────────────────────────── */}
+              {/* Security Policy */}
               <div className="border border-gray-200 rounded-xl bg-white p-5">
                 <div className="flex items-start gap-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F0FCF7]">
@@ -425,12 +463,9 @@ export default function UserManagementPage() {
                       Penegakan Kebijakan Keamanan Akun
                     </h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      Wajibkan otentikasi dua langkah (2FA) untuk seluruh
-                      anggota dengan hak akses persetujuan saldo dan kas
+                      Hanya super_admin yang dapat mengelola pengguna dan mengubah
+                      hak akses
                     </p>
-                    <button className="mt-3 text-sm font-semibold text-[#175643] hover:underline">
-                      Kelola Kebijakan →
-                    </button>
                   </div>
                 </div>
               </div>
@@ -444,55 +479,38 @@ export default function UserManagementPage() {
                 <h2 className="text-lg font-bold text-[#0f172a]">
                   Konfigurasi Hak Akses
                 </h2>
-                <div className="mt-2 flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-[#0f172a]">
-                    Matriks Izin Modul
-                  </h3>
-                </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  Pilih peran di bawah ini untuk melihat batasan fitur dan
-                  menyesuaikan wewenang secara real-time.
+                  Matriks izin modul berdasarkan peran
                 </p>
               </div>
 
               {/* Role Tabs */}
               <div className="flex gap-2">
-                {["Operations", "Treasurer", "Marketing"].map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => setPermRole(role)}
-                    className={cn(
-                      "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                      permRole === role
-                        ? "bg-[#175643] text-white"
-                        : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                    )}
-                  >
-                    {role}
-                  </button>
-                ))}
+                {(["operasional", "bendahara", "pemasaran"] as Role[]).map(
+                  (role) => (
+                    <button
+                      key={role}
+                      onClick={() => setPermRole(role)}
+                      className={cn(
+                        "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                        permRole === role
+                          ? "bg-[#175643] text-white"
+                          : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                      )}
+                    >
+                      {ROLE_LABELS[role]}
+                    </button>
+                  )
+                )}
               </div>
 
-              {/* Active Role Info */}
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-[#175643]" />
                 <span className="text-sm font-medium text-[#0f172a]">
-                  Peran: {permRole} (
-                  {permRole === "Operations"
-                    ? "Operasional"
-                    : permRole === "Treasurer"
-                      ? "Bendahara"
-                      : "Pemasaran"}
-                  )
+                  Peran: {ROLE_LABELS[permRole]}
                 </span>
                 <span className="text-sm text-gray-500">
-                  •{" "}
-                  {permRole === "Operations"
-                    ? "14"
-                    : permRole === "Treasurer"
-                      ? "8"
-                      : "16"}{" "}
-                  Pengguna
+                  {roleCounts[permRole] || 0} Pengguna
                 </span>
               </div>
 
@@ -530,29 +548,16 @@ export default function UserManagementPage() {
                 ))}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 rounded-lg bg-[#175643] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#1B5E47]">
-                  <Save className="h-4 w-4" />
-                  Simpan Perubahan Hak Akses
-                </button>
-                <button className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50">
-                  <RotateCcw className="h-4 w-4" />
-                  Reset ke Konfigurasi Default
-                </button>
-              </div>
-
-              {/* Help Box */}
               <div className="border border-gray-200 rounded-xl bg-[#F9FAFB] p-5">
                 <div className="flex items-start gap-3">
                   <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
                   <div>
                     <h4 className="text-sm font-bold text-[#0f172a]">
-                      Butuh Hak Akses Kustom?
+                      Tentang Hak Akses
                     </h4>
                     <p className="mt-1 text-sm text-gray-500">
-                      Anda dapat memberikan izin ad-hoc per anggota tanpa
-                      mengubah aturan peran global melalui tombol aksi tabel.
+                      Hak akses ditentukan oleh role pengguna. Hubungi super_admin
+                      untuk mengubah role Anda.
                     </p>
                   </div>
                 </div>

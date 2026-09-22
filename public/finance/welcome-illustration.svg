@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 140" fill="none">
+  <!-- Background circle -->
+  <circle cx="90" cy="70" r="65" fill="rgba(255,255,255,0.1)"/>
+  
+  <!-- Person silhouette -->
+  <circle cx="90" cy="45" r="18" fill="rgba(255,255,255,0.9)"/>
+  <path d="M60 85 C60 65 120 65 120 85 L120 110 C120 115 115 120 110 120 L70 120 C65 120 60 115 60 110 Z" fill="rgba(255,255,255,0.9)"/>
+  
+  <!-- Coin -->
+  <circle cx="130" cy="50" r="15" fill="#FFD700" stroke="#FFA500" stroke-width="2"/>
+  <text x="130" y="55" text-anchor="middle" fill="#8B4513" font-size="12" font-weight="bold">$</text>
+  
+  <!-- Chart bars -->
+  <rect x="25" y="90" width="8" height="25" rx="2" fill="rgba(255,255,255,0.6)"/>
+  <rect x="38" y="80" width="8" height="35" rx="2" fill="rgba(255,255,255,0.7)"/>
+  <rect x="51" y="70" width="8" height="45" rx="2" fill="rgba(255,255,255,0.8)"/>
+  
+  <!-- Floating elements -->
+  <circle cx="150" cy="90" r="8" fill="rgba(255,255,255,0.5)"/>
+  <circle cx="30" cy="55" r="6" fill="rgba(255,255,255,0.4)"/>
+</svg>

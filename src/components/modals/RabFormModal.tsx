@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, ChevronDown, Info } from "lucide-react";
+import { X, Check, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface RabFormModalProps {
@@ -12,12 +12,12 @@ interface RabFormModalProps {
 
 type Priority = "on-track" | "high" | "medium" | "low";
 
-const categories = [
-  { id: "kuliah", label: "Kuliah" },
-  { id: "biaya-hidup", label: "Biaya Hidup" },
-  { id: "operasional", label: "Operasional" },
-  { id: "praktikum", label: "Praktikum & Laboratorium" },
-];
+interface CategoryOption {
+  id: string;
+  name: string;
+  icon: string | null;
+  color: string | null;
+}
 
 const priorities: {
   id: Priority;
@@ -66,26 +66,57 @@ const priorities: {
   },
 ];
 
-const quarterOptions = [
-  "Kuartal 1 (Q1) 2024",
-  "Kuartal 2 (Q2) 2024",
-  "Kuartal 3 (Q3) 2024",
-  "Kuartal 4 (Q4) 2024",
-];
+function getCurrentQuarter(): string {
+  const now = new Date();
+  const q = Math.ceil((now.getMonth() + 1) / 3);
+  return `Kuartal ${q} (Q${q}) ${now.getFullYear()}`;
+}
+
+const quarterOptions = (() => {
+  const now = new Date();
+  const year = now.getFullYear();
+  return [
+    { id: `Kuartal 1 (Q1) ${year}`, label: `Q1 ${year}`, sublabel: `Jan - Mar ${year}` },
+    { id: `Kuartal 2 (Q2) ${year}`, label: `Q2 ${year}`, sublabel: `Apr - Jun ${year}` },
+    { id: `Kuartal 3 (Q3) ${year}`, label: `Q3 ${year}`, sublabel: `Jul - Sep ${year}` },
+    { id: `Kuartal 4 (Q4) ${year}`, label: `Q4 ${year}`, sublabel: `Okt - Des ${year}` },
+  ];
+})();
 
 export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
-  const [selectedCategory, setSelectedCategory] = useState("kuliah");
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedQuarter, setSelectedQuarter] = useState(getCurrentQuarter);
   const [posName, setPosName] = useState("");
   const [specs, setSpecs] = useState("");
   const [selectedPriority, setSelectedPriority] = useState<Priority>("on-track");
   const [quantity, setQuantity] = useState("10");
   const [targetProgress, setTargetProgress] = useState("83");
-  const [selectedQuarter, setSelectedQuarter] = useState("Kuartal 4 (Q4) 2024");
   const [pricePerUnit, setPricePerUnit] = useState("50000");
   const [notes, setNotes] = useState("");
-  const [showQuarterDropdown, setShowQuarterDropdown] = useState(false);
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch categories from API on mount
+  useEffect(() => {
+    if (!isOpen) return;
+
+    fetch("/api/keuangan/categories?type=PENGELUARAN")
+      .then((res) => res.json())
+      .then((data: CategoryOption[]) => {
+        setCategories(data);
+        // Auto-select first category if none selected
+        if (data.length > 0 && !selectedCategoryId) {
+          setSelectedCategoryId(data[0].id);
+        }
+      })
+      .catch(() => {
+        // Fallback: categories will be empty, user can use custom
+        setCategories([]);
+      });
+  }, [isOpen, selectedCategoryId]);
 
   const totalPagu = useMemo(() => {
     const qty = parseInt(quantity) || 0;
@@ -97,26 +128,51 @@ export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
     return value.toLocaleString("id-ID");
   };
 
-  const handleSave = () => {
-    console.log({
-      category: selectedCategory,
-      customCategory,
-      posName,
-      specs,
-      priority: selectedPriority,
-      quantity,
-      targetProgress,
-      quarter: selectedQuarter,
-      pricePerUnit,
-      totalPagu,
-      notes,
-    });
-    onClose();
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const payload: Record<string, unknown> = {
+        quarter: selectedQuarter,
+        posName,
+        specs: specs || undefined,
+        priority: selectedPriority,
+        quantity: parseInt(quantity) || 0,
+        targetProgress: parseInt(targetProgress) || 0,
+        pricePerUnit: parseInt(pricePerUnit) || 0,
+        notes: notes || undefined,
+      };
+
+      // Send categoryId (UUID) or customCategory (new name to create)
+      if (showCustomCategory && customCategory.trim()) {
+        payload.customCategory = customCategory.trim();
+      } else if (selectedCategoryId) {
+        payload.categoryId = selectedCategoryId;
+      }
+
+      const res = await fetch("/api/rab", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal menyimpan pos anggaran");
+      }
+
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleClose = () => {
-    setShowQuarterDropdown(false);
     setShowCustomCategory(false);
+    setSelectedQuarter(getCurrentQuarter());
     onClose();
   };
 
@@ -157,7 +213,7 @@ export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
                   </div>
                   <p className="text-sm text-gray-500">
                     Tambahkan pos alokasi belanja baru ke dalam perencanaan
-                    anggaran RAB (Kuartal 4 – 2024)
+                    anggaran RAB ({quarterOptions.find(q => q.id === selectedQuarter)?.label || selectedQuarter})
                   </p>
                 </div>
                 <button
@@ -168,7 +224,42 @@ export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
                 </button>
               </div>
 
-              {/* Kategori Anggaran */}
+              {/* Kuartal */}
+              <div className="mb-5">
+                <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-900">
+                  KUARTAL ANGGARAN <span className="text-red-500">*</span>
+                </span>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {quarterOptions.map((q) => (
+                    <button
+                      key={q.id}
+                      onClick={() => setSelectedQuarter(q.id)}
+                      className={cn(
+                        "flex flex-col items-center gap-0.5 rounded-xl border-2 p-3 transition-all",
+                        selectedQuarter === q.id
+                          ? "border-[#064e3b] bg-[#064e3b]/5 shadow-sm"
+                          : "border-gray-200 bg-white hover:bg-gray-50"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "text-xs font-bold",
+                          selectedQuarter === q.id
+                            ? "text-[#064e3b]"
+                            : "text-gray-700"
+                        )}
+                      >
+                        {q.label}
+                      </span>
+                      <span className="text-[10px] text-gray-400">
+                        {q.sublabel}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Kategori Anggaran — Dynamic from API */}
               <div className="mb-5">
                 <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-900">
                   KATEGORI ANGGARAN
@@ -177,20 +268,29 @@ export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
-                      onClick={() => setSelectedCategory(cat.id)}
+                      onClick={() => {
+                        setSelectedCategoryId(cat.id);
+                        setShowCustomCategory(false);
+                      }}
                       className={cn(
                         "rounded-full px-3.5 py-1.5 text-xs font-medium transition-all",
-                        selectedCategory === cat.id
+                        selectedCategoryId === cat.id && !showCustomCategory
                           ? "bg-[#064e3b] text-white shadow-sm"
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       )}
                     >
-                      {cat.label}
+                      {cat.icon && <span className="mr-1">{cat.icon}</span>}
+                      {cat.name}
                     </button>
                   ))}
                   <button
                     onClick={() => setShowCustomCategory(!showCustomCategory)}
-                    className="rounded-full border border-dashed border-gray-300 px-3.5 py-1.5 text-xs font-medium text-gray-500 transition-all hover:border-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                    className={cn(
+                      "rounded-full border border-dashed px-3.5 py-1.5 text-xs font-medium transition-all",
+                      showCustomCategory
+                        ? "border-[#064e3b] bg-[#064e3b]/5 text-[#064e3b]"
+                        : "border-gray-300 text-gray-500 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                    )}
                   >
                     + Kategori Lain
                   </button>
@@ -288,8 +388,8 @@ export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
                 </div>
               </div>
 
-              {/* Jumlah, Target Progress, Alokasi Kuartal */}
-              <div className="mb-5 grid grid-cols-3 gap-3">
+              {/* Jumlah & Target Progress */}
+              <div className="mb-5 grid grid-cols-2 gap-3">
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-900">
                     JUMLAH (UNIT) <span className="text-red-500">*</span>
@@ -324,51 +424,6 @@ export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
                       %
                     </span>
                   </div>
-                </div>
-                <div className="relative">
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-900">
-                    ALOKASI KUARTAL
-                  </label>
-                  <button
-                    onClick={() =>
-                      setShowQuarterDropdown(!showQuarterDropdown)
-                    }
-                    className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 transition-colors hover:bg-gray-50"
-                  >
-                    <span className="truncate">{selectedQuarter}</span>
-                    <ChevronDown className="h-4 w-4 shrink-0 text-gray-400" />
-                  </button>
-                  <AnimatePresence>
-                    {showQuarterDropdown && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute left-0 right-0 top-full z-10 mt-1 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg"
-                      >
-                        {quarterOptions.map((q) => (
-                          <button
-                            key={q}
-                            onClick={() => {
-                              setSelectedQuarter(q);
-                              setShowQuarterDropdown(false);
-                            }}
-                            className={cn(
-                              "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
-                              selectedQuarter === q
-                                ? "bg-[#064e3b]/5 font-medium text-[#064e3b]"
-                                : "text-gray-700 hover:bg-gray-100"
-                            )}
-                          >
-                            <span>{q}</span>
-                            {selectedQuarter === q && (
-                              <Check className="h-4 w-4 text-[#064e3b]" />
-                            )}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
               </div>
 
@@ -431,22 +486,30 @@ export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
             {/* Footer */}
             <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
               <div className="flex items-center gap-2 text-xs text-gray-400">
-                <Info className="h-3.5 w-3.5" />
-                <span>Perubahan langsung memperbarui rekap realisasi</span>
+                {error ? (
+                  <span className="text-red-500 font-medium">{error}</span>
+                ) : (
+                  <>
+                    <Info className="h-3.5 w-3.5" />
+                    <span>Perubahan langsung memperbarui rekap realisasi</span>
+                  </>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleClose}
-                  className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+                  disabled={isSaving}
+                  className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 rounded-xl bg-[#064e3b] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#044a38]"
+                  disabled={isSaving}
+                  className="flex items-center gap-2 rounded-xl bg-[#064e3b] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#044a38] disabled:opacity-50"
                 >
                   <Check className="h-4 w-4" />
-                  Simpan Pos Anggaran
+                  {isSaving ? "Menyimpan..." : "Simpan Pos Anggaran"}
                 </button>
               </div>
             </div>
