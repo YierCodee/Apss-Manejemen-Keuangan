@@ -24,7 +24,7 @@ const adminRoutes = ["/admin"];
 // Routes that should redirect to dashboard if already logged in
 const authRoutes = ["/login", "/register"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionCookie = request.cookies.get("session-token");
 
