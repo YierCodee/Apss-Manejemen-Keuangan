@@ -35,6 +35,7 @@ const ROLE_LABELS: Record<Role, string> = {
   bendahara: "Bendahara",
   operasional: "Operasional",
   pemasaran: "Pemasaran",
+  member: "Member",
 };
 
 function getInitials(name: string): string {
@@ -52,6 +53,7 @@ function getRoleColor(role: Role): string {
     bendahara: "bg-blue-600",
     operasional: "bg-amber-600",
     pemasaran: "bg-purple-600",
+    member: "bg-gray-500",
   };
   return colors[role];
 }
@@ -332,6 +334,7 @@ export default function UserManagementPage() {
                   <option value="bendahara">Bendahara</option>
                   <option value="operasional">Operasional</option>
                   <option value="pemasaran">Pemasaran</option>
+                  <option value="member">Member</option>
                 </select>
                 <select
                   value={statusFilter}
@@ -412,6 +415,7 @@ export default function UserManagementPage() {
                             <option value="bendahara">Bendahara</option>
                             <option value="operasional">Operasional</option>
                             <option value="pemasaran">Pemasaran</option>
+                            <option value="member">Member</option>
                           </select>
                         </div>
 

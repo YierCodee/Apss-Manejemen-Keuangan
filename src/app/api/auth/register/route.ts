@@ -6,7 +6,7 @@ import { validateRegisterInput, sanitize } from "@/lib/validation";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, password, accountType } = body;
+    const { name, email, password } = body;
 
     // Server-side validation
     const validation = validateRegisterInput({ name, email, password });
@@ -35,8 +35,9 @@ export async function POST(request: Request) {
     // Hash password with bcrypt (salt rounds = 12)
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Map account type to role (sesuai enum Role di DB: bendahara, operasional)
-    const role = accountType === "business" ? "bendahara" : "operasional";
+    // Default role: member (hanya bisa akses menu utama)
+    // Admin bisa promote ke role lain dari halaman User Management
+    const role = "member";
 
     // Create user — Prisma uses parameterized queries (prepared statements)
     const user = await prisma.user.create({
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
         name: cleanName,
         email: cleanEmail,
         password: hashedPassword,
-        role: role as "bendahara" | "operasional",
+        role: role as "member",
       },
       select: {
         id: true,

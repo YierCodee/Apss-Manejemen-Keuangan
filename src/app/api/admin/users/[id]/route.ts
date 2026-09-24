@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { assertAdmin, AccessError, type Role } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 
-const VALID_ROLES: Role[] = ["super_admin", "bendahara", "operasional", "pemasaran"];
+const VALID_ROLES: Role[] = ["super_admin", "bendahara", "operasional", "pemasaran", "member"];
 
 export async function GET(
   _request: Request,

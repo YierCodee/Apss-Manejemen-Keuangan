@@ -42,25 +42,35 @@ export const sidebarConfig: SidebarSection[] = [
   {
     label: "BUSINESS KELOMPOK",
     items: [
+       {
+        label: "Dashboard Penjualan",
+        href: "/business-kelompok/dashboard-penjualan",
+        icon: "LayoutDashboard",
+        roles: ["super_admin", "bendahara", "operasional", "pemasaran"],
+      },
       {
         label: "Produk & Stok",
         href: "/business-kelompok/produk-stok",
         icon: "Package",
+        roles: ["super_admin", "bendahara", "operasional", "pemasaran"],
       },
       {
         label: "Keuangan & Aset",
         href: "/business-kelompok/keuangan-aset",
         icon: "CircleDollarSign",
+        roles: ["super_admin", "bendahara", "operasional", "pemasaran"],
       },
       {
         label: "Transaksi & Penjualan",
         href: "/business-kelompok/transaksi-penjualan",
         icon: "ShoppingBag",
+        roles: ["super_admin", "bendahara", "operasional", "pemasaran"],
       },
       {
         label: "Laporan Arus Kas",
         href: "/business-kelompok/laporan-arus-kas",
         icon: "LineChart",
+        roles: ["super_admin", "bendahara", "operasional", "pemasaran"],
       },
     ],
   },

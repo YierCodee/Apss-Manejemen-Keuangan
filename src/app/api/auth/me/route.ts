@@ -27,6 +27,7 @@ export async function GET() {
         email: true,
         role: true,
         isActive: true,
+        createdAt: true,
       },
     });
 
@@ -50,6 +51,7 @@ export async function GET() {
         name: user.name,
         email: user.email,
         role: user.role,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {

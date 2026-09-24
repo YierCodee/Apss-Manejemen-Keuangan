@@ -120,25 +120,6 @@ export default function RegisterPage() {
           <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute top-1/4 -right-24 w-80 h-80 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Top Brand Identity */}
-          <div className="relative z-10">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 bg-emerald-800 border border-emerald-400/20 rounded-xl flex items-center justify-center shadow-inner">
-                <span className="text-white text-2xl font-bold tracking-tight">
-                  N
-                </span>
-              </div>
-              <div>
-                <span className="block text-2xl font-bold tracking-tight text-white leading-none">
-                  NevBank
-                </span>
-                <span className="text-[10px] tracking-wider uppercase font-semibold text-emerald-300/80">
-                  Financial Hub
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Middle: Value Proposition & Preview Card */}
           <div className="relative z-10 my-auto py-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-emerald-200 text-xs font-semibold mb-6 border border-white/10">
@@ -153,32 +134,35 @@ export default function RegisterPage() {
                   clipRule="evenodd"
                 />
               </svg>
-              Platform Finansial Terpercaya
+              Sistem Keuangan Terintegrasi &amp; Aman
             </div>
             <h1 className="text-3xl xl:text-4xl font-extrabold tracking-tight text-white leading-tight mb-4">
-              Bergabung bersama <br className="hidden sm:inline" />
-              50.000+ pelaku usaha di Indonesia.
+              Kelola keuangan bisnis &amp; pribadi dalam satu portal cerdas.
             </h1>
             <p className="text-slate-300 text-base xl:text-lg leading-relaxed mb-10 max-w-lg">
-              Kelola pembukuan arus kas, atur alokasi RAB, dan pantau ringkasan
-              saldo keuangan bisnis Anda dalam satu platform terpadu.
+              Pantau arus kas, verifikasi anggaran RAB, hingga otomatisasi
+              standing orders secara real-time dengan proteksi standar
+              perbankan.
             </p>
 
             {/* Preview Mock Balance Card */}
             <div className="bg-white/10 backdrop-blur-xl border border-white/15 rounded-2xl p-6 shadow-2xl max-w-md">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs uppercase tracking-wider text-emerald-200 font-semibold">
-                  Total Saldo Bisnis
+                  Total Saldo Aktif
                 </span>
                 <span className="text-xs text-white/70 bg-white/10 px-2 py-0.5 rounded">
-                  Terhubung
+                  Hubungkan Rekening
                 </span>
               </div>
               <div className="text-3xl font-extrabold tracking-tight text-white mb-3">
                 Rp 68.789,56
               </div>
               <div className="flex items-center gap-2 text-xs text-emerald-200/90 mb-5">
-                <span>&bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 4821</span>
+                <span>
+                  &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull;
+                  &bull;&bull;&bull;&bull; 4821
+                </span>
                 <svg
                   className="w-4 h-4 text-emerald-300 inline"
                   fill="none"
@@ -199,40 +183,16 @@ export default function RegisterPage() {
                   />
                 </svg>
               </div>
-              {/* Feature Badges */}
-              <div className="grid grid-cols-2 gap-2 pt-2 text-[11px]">
-                <div className="flex items-center space-x-2 bg-emerald-950/40 p-2 rounded-lg border border-white/5">
-                  <svg
-                    className="w-4 h-4 text-emerald-300 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                    />
-                  </svg>
-                  <span className="font-medium">Catat Transaksi Real-time</span>
+              <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="text-slate-200 font-medium">
+                    Standing Order Otomatis
+                  </span>
                 </div>
-                <div className="flex items-center space-x-2 bg-emerald-950/40 p-2 rounded-lg border border-white/5">
-                  <svg
-                    className="w-4 h-4 text-emerald-300 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                    />
-                  </svg>
-                  <span className="font-medium">Laporan Arus Kas</span>
-                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                  Aktif
+                </span>
               </div>
             </div>
           </div>
@@ -247,15 +207,15 @@ export default function RegisterPage() {
                 viewBox="0 0 24 24"
               >
                 <path
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
                 />
               </svg>
-              <span>Enkripsi Bank-Grade 256-Bit</span>
+              <span>Enkripsi 256-Bit Bank-Grade Security</span>
             </div>
-            <span className="font-medium text-white">Bebas Biaya Bulanan</span>
+            <div className="text-slate-400">ISO/IEC 27001 Terverifikasi</div>
           </div>
         </section>
 
@@ -305,7 +265,7 @@ export default function RegisterPage() {
             {/* Form Header */}
             <div className="mb-8">
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mb-2">
-                Daftar Akun NevBank
+                Daftar Akun Finora
               </h2>
               <p className="text-sm text-slate-600">
                 Mulai kelola aset dan transaksi keuangan bisnis Anda dengan mudah.

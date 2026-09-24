@@ -25,7 +25,7 @@ export function isValidName(name: string): boolean {
 
 export function sanitize(input: string): string {
   // Trim whitespace and strip control characters (keep newlines for text fields)
-  // eslint-disable-next-line no-control-regex
+   
   return input.trim().replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
 }
 

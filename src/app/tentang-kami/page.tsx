@@ -2,10 +2,12 @@
 
 import { motion } from "framer-motion";
 import {
-  Check,
   ArrowRight,
+  Check,
+  ShieldCheck,
   FileText,
   Users,
+  Target,
   BookOpenCheck,
 } from "lucide-react";
 import {
@@ -19,42 +21,6 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 
 /* ─── Data ─── */
-const FEATURES = [
-  {
-    icon: FileText,
-    title: "Dokumentasi Terpusat",
-    desc: "Semua dokumen Serkwu — proposal, bukti kegiatan, laporan, dan berkas administrasi — berada dalam satu ruang terstruktur. Tidak lagi tersebar di folder pribadi atau chat grup.",
-    checks: [
-      "Proposal, bukti kegiatan, dan laporan terstruktur",
-      "Akses terbatas per peran anggota",
-    ],
-    iconBg: DS.colors.surfaceContainer,
-    iconColor: DS.colors.primaryContainer,
-  },
-  {
-    icon: BookOpenCheck,
-    title: "Monitoring Progres Real-time",
-    desc: "Dashboard memantau perkembangan setiap tahapan Sertifikasi Kewirausahaan. Tim pembina dapat melihat progres dan memberikan umpan balik langsung sebelum deadline.",
-    checks: [
-      "Dashboard visual setiap tahapan",
-      "Notifikasi deadline mendekat",
-    ],
-    iconBg: DS.colors.positiveBg,
-    iconColor: DS.colors.positive,
-  },
-  {
-    icon: Users,
-    title: "Koordinasi Kelompok",
-    desc: "Pembagian tugas, revisi dokumen, dan koordinasi jadwal menjadi transparan dan terukur. Setiap anggota bisa berkontribusi secara bersamaan.",
-    checks: [
-      "Pembagian tugas transparan",
-      "Revisi dokumen kolektif",
-    ],
-    iconBg: DS.colors.surfaceContainerHigh,
-    iconColor: DS.colors.tertiaryContainer,
-  },
-];
-
 const STATS = [
   { value: "8+", label: "Anggota Kelompok", sub: "Aktif mengerjakan Serkwu" },
   { value: "12", label: "Dokumen Terunggah", sub: "Lengkap dalam satu ruang" },
@@ -62,15 +28,69 @@ const STATS = [
   { value: "UMPO 2025", label: "Periode Sertifikasi", sub: "Universitas Muhammadiyah Ponorogo" },
 ];
 
-const MILESTONES = [
-  { year: "Semester 5", period: "Perencanaan", title: "Pembentukan Kelompok & Perencanaan" },
-  { year: "Semester 6", period: "Implementasi", title: "Eksekusi Proyek & Dokumentasi" },
-  { year: "Semester 6", period: "Revisi", title: "Revisi Dokumen & Konsolidasi Berkas" },
-  { year: "Sekarang", period: "Finalisasi", title: "Finalisasi & Menuju Sertifikasi" },
+const VALUES = [
+  {
+    icon: FileText,
+    title: "Dokumentasi Terpadu",
+    desc: "Semua dokumen Serkwu — proposal, bukti kegiatan, laporan, dan berkas administrasi — berada dalam satu ruang terstruktur. Tidak lagi tersebar di folder pribadi atau chat grup.",
+  },
+  {
+    icon: Users,
+    title: "Kolaborasi Real-time",
+    desc: "Setiap anggota kelompok bisa mengakses, mengedit, dan berkontribusi secara bersamaan. Pembagian tugas, revisi dokumen, dan koordinasi jadwal menjadi transparan dan terukur.",
+  },
+  {
+    icon: Target,
+    title: "Monitoring Berkala",
+    desc: "Dashboard memantau perkembangan setiap tahapan Sertifikasi Kewirausahaan. Tim pembina dapat melihat progres dan memberikan umpan balik langsung sebelum deadline.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Standar Kompetensi Terpenuhi",
+    desc: "Semua berkas dan bukti kegiatan diverifikasi sesuai rubrik kompetensi yang dipersyaratkan. Kami memastikan setiap dokumen memenuhi standar yang ditetapkan.",
+  },
 ];
 
-/* ─── Hero Section ─── */
-function HeroSection() {
+const MILESTONES = [
+  {
+    year: "Semester 5",
+    period: "Perencanaan",
+    title: "Pembentukan Kelompok & Perencanaan",
+    desc: "Delapan mahasiswa Universitas Muhammadiyah Ponorogo bergabung untuk membentuk kelompok kewirausahaan. Kami menyusun rancangan awal, membagi peran, dan menetapkan timeline pelaksanaan Sertifikasi Kewirausahaan.",
+  },
+  {
+    year: "Semester 6",
+    period: "Documentasi & Implementasi",
+    title: "Eksekusi Proyek & Dokumentasi",
+    desc: "Kami menjalankan proyek kewirausahaan sesuai rencana — dari analisis pasar, penyusunan business plan, hingga pelaksanaan operasional. Seluruh proses didokumentasikan secara berkala sebagai bukti kegiatan.",
+  },
+  {
+    year: "Semester 6",
+    period: "Revisi & Konsolidasi",
+    title: "Revisi Dokumen & Konsolidasi Berkas",
+    desc: "Berdasarkan umpan balik dari pembina, kami merevisi seluruh dokumen administrasi. Laporan keuangan, bukti kegiatan, dan portofolio dikonsolidasikan ke dalam satu platform terpusat.",
+  },
+  {
+    year: "Sekarang",
+    period: "Finalisasi & Serah Terima",
+    title: "Finalisasi & Menuju Sertifikasi",
+    desc: "Dokumen final siap diverifikasi. Kami telah memenuhi seluruh persyaratan administrasi dan kompetensi yang dipersyaratkan. Platform ini — dibangun sendiri oleh mahasiswa — menjadi bukti komitmen kami.",
+  },
+];
+
+const TEAM = [
+  { initials: "AR", role: "Ketua Kelompok", name: "Andi Rizki" },
+  { initials: "DS", role: "Sekretaris & Dokumentasi", name: "Dita Safitri" },
+  { initials: "BP", role: "Koordinator Keuangan", name: "Budi Pratama" },
+  { initials: "LA", role: "Koordinator Proyek", name: "Lela Amalia" },
+  { initials: "FR", role: "Public Relation", name: "Fajar Ramadhan" },
+  { initials: "NK", role: "Koordinator Administrasi", name: "Nina Kusuma" },
+  { initials: "AZ", role: "Teknis & Platform", name: "Ahmad Zamzami" },
+  { initials: "SM", role: "Koordinator Monitoring", name: "Siti Mutia" },
+];
+
+/* ─── Hero ─── */
+function AboutHero() {
   return (
     <section
       className="relative"
@@ -96,56 +116,53 @@ function HeroSection() {
           {/* Copy */}
           <div className="lg:col-span-7 flex flex-col gap-5 md:gap-6">
             <motion.div
-              className="inline-flex items-center gap-2 self-start"
-              style={{ ...sectionLabel }}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={0}
-            >
-              <FileText className="w-3.5 h-3.5" style={{ color: DS.colors.primaryContainer }} />
-              <span
-                className="text-[10px] md:text-xs font-bold uppercase tracking-wider"
-                style={{ color: DS.colors.primaryContainer }}
-              >
-                Sertifikasi Kewirausahaan
-              </span>
-            </motion.div>
+               className="inline-flex items-center gap-2 self-start"
+               style={{ ...sectionLabel }}
+               variants={fadeUp}
+               initial="hidden"
+               animate="visible"
+               custom={0}
+             >
+               <ShieldCheck className="w-3.5 h-3.5" style={{ color: DS.colors.primaryContainer }} />
+               <span
+                 className="text-[10px] md:text-xs font-bold uppercase tracking-wider"
+                 style={{ color: DS.colors.primaryContainer }}
+               >
+                 Tentang Kami
+               </span>
+             </motion.div>
 
-            <motion.h1
-              className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight md:leading-[56px]"
-              style={{ color: DS.colors.onSurface, letterSpacing: "-0.03em" }}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={1}
-            >
-              Platform internal untuk{" "}
-              <span
-                className="underline decoration-2 decoration-wavy underline-offset-4"
-                style={{
-                  color: DS.colors.primaryContainer,
-                  textDecorationColor: DS.colors.onPrimaryContainer,
-                }}
-              >
-                mengelola Sertifikasi
-              </span>{" "}
-              Kewirausahaan
-            </motion.h1>
+             <motion.h1
+               className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight md:leading-[56px]"
+               style={{ color: DS.colors.onSurface, letterSpacing: "-0.03em" }}
+               variants={fadeUp}
+               initial="hidden"
+               animate="visible"
+               custom={1}
+             >
+               Platform internal untuk{" "}
+               <span
+                 className="underline decoration-2 decoration-wavy underline-offset-4"
+                 style={{
+                   color: DS.colors.primaryContainer,
+                   textDecorationColor: DS.colors.onPrimaryContainer,
+                 }}
+               >
+                 mengelola Sertifikasi
+               </span>{" "}
+               Kewirausahaan
+             </motion.h1>
 
-            <motion.p
-              className="text-base md:text-lg leading-relaxed md:leading-[28px] max-w-[540px]"
-              style={{ color: DS.colors.onSurfaceVariant }}
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={2}
-            >
-              Platform ini dibangun secara mandiri oleh mahasiswa Universitas Muhammadiyah Ponorogo
-              guna memfasilitasi dan mengelola seluruh kebutuhan administrasi Sertifikasi Kewirausahaan
-              (Serkwu). Ruang digital ini berfungsi sebagai pusat dokumentasi terpadu,
-              sarana kolaborasi strategis, serta instrumen monitoring perkembangan proyek.
-            </motion.p>
+             <motion.p
+               className="text-base md:text-lg leading-relaxed md:leading-[28px] max-w-[540px]"
+               style={{ color: DS.colors.onSurfaceVariant }}
+               variants={fadeUp}
+               initial="hidden"
+               animate="visible"
+               custom={2}
+             >
+               <strong>Tentang Kami</strong> — Kami adalah kelompok mahasiswa Universitas Muhammadiyah Ponorogo (UMPO) yang saat ini sedang menempuh program Sertifikasi Kewirausahaan (Serkwu). Platform internal ini kami bangun secara mandiri sebagai wadah terintegrasi untuk mengelola seluruh dokumen, portofolio, dan laporan perkembangan bisnis kelompok. Melalui ruang digital ini, kami berkomitmen untuk mendokumentasikan setiap tahapan usaha secara transparan dan akuntabel guna memenuhi standar kompetensi yang dipersyaratkan.
+             </motion.p>
 
             <motion.div
               className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-2"
@@ -170,32 +187,6 @@ function HeroSection() {
                 }}
               >
                 <span>Masuk ke Platform</span>
-                <ArrowRight className="w-4 h-4" />
-              </a>
-              <a
-                href="/tentang-kami"
-                className="flex items-center justify-center gap-2 px-6 py-3.5"
-                style={{
-                  backgroundColor: DS.colors.surfaceContainerLowest,
-                  color: DS.colors.onSurface,
-                  border: `1px solid ${DS.colors.border}`,
-                  borderRadius: "1rem",
-                  fontWeight: 600,
-                  fontSize: "0.875rem",
-                  lineHeight: "20px",
-                  boxShadow: DS.shadow.level1,
-                  transition: "box-shadow 0.2s, border-color 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = DS.shadow.level2;
-                  e.currentTarget.style.borderColor = DS.colors.outlineVariant;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = DS.shadow.level1;
-                  e.currentTarget.style.borderColor = DS.colors.border;
-                }}
-              >
-                <span>Tentang Kami</span>
                 <ArrowRight className="w-4 h-4" />
               </a>
             </motion.div>
@@ -277,8 +268,110 @@ function HeroSection() {
   );
 }
 
-/* ─── Fitur Section ─── */
+/* ─── Misi & Visi ─── */
+function MissionSection() {
+  return (
+    <section
+      className="py-14 md:py-20"
+      style={{
+        backgroundColor: DS.colors.surface,
+        borderBottom: `1px solid ${DS.colors.border}`,
+      }}
+    >
+      <div className="max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+          <motion.div
+            className="lg:col-span-5 flex flex-col gap-4"
+            variants={fadeUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-80px" }}
+            custom={0}
+          >
+            <div
+              className="inline-flex items-center self-start"
+              style={{ ...sectionLabel, backgroundColor: DS.colors.positiveBg, border: `1px solid ${DS.colors.positiveBorder}` }}
+            >
+              <span
+                className="text-[12px] font-bold uppercase tracking-wider"
+                style={{ color: DS.colors.primaryContainer }}
+              >
+                Visi & Misi
+              </span>
+            </div>
+            <h2
+              className="text-2xl md:text-3xl font-extrabold leading-tight md:leading-[40px]"
+              style={{ color: DS.colors.onSurface, letterSpacing: "-0.02em" }}
+            >
+              Satu tujuan: lulus Sertifikasi dengan{" "}
+              <span style={{ color: DS.colors.primaryContainer }}>proses yang terukur</span>
+            </h2>
+          </motion.div>
+
+          <div className="lg:col-span-7 flex flex-col gap-4">
+            {[
+              "Sertifikasi Kewirausahaan menuntut setiap kelompok untuk mendokumentasikan seluruh proses kewirausahaan secara komprehensif — dari perencanaan, eksekusi, hingga pertanggungjawaban. Tanpa disiplin dokumentasi, standar kompetensi sulit dipenuhi.",
+              "Kami menyadari bahwa mahasiswa sering kehilangan jejak kegiatan: file tersebar di berbagai folder, bukti kegiatan terlupakan, dan laporan belum terkonsolidasi sebelum deadline. Platform ini hadir untuk menghilangkan masalah itu.",
+              "Visi kami sederhana: setiap anggota kelompok UMPO mampu menunjukkan proses kewirausahaan yang terdokumentasi dengan baik, terukur, dan sesuai standar kompetensi — bukan sekadar hasil akhir, tapi bagaimana kami sampai di sana.",
+            ].map((text, i) => (
+              <motion.p
+                key={i}
+                className="text-[15px] leading-[26px]"
+                style={{ color: DS.colors.onSurfaceVariant }}
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-60px" }}
+                custom={i + 1}
+              >
+                {text}
+              </motion.p>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Fitur Platform ─── */
 function FeatureSection() {
+  const features = [
+    {
+      icon: FileText,
+      title: "Dokumentasi Terpusat",
+      desc: "Semua dokumen Serkwu — proposal, bukti kegiatan, laporan, dan berkas administrasi — berada dalam satu ruang terstruktur. Tidak lagi tersebar di folder pribadi atau chat grup.",
+      checks: [
+        "Proposal, bukti kegiatan, dan laporan terstruktur",
+        "Akses terbatas per peran anggota",
+      ],
+      iconBg: DS.colors.surfaceContainer,
+      iconColor: DS.colors.primaryContainer,
+    },
+    {
+      icon: BookOpenCheck,
+      title: "Monitoring Progres Real-time",
+      desc: "Dashboard memantau perkembangan setiap tahapan Sertifikasi Kewirausahaan. Tim pembina dapat melihat progres dan memberikan umpan balik langsung sebelum deadline.",
+      checks: [
+        "Dashboard visual setiap tahapan",
+        "Notifikasi deadline mendekat",
+      ],
+      iconBg: DS.colors.positiveBg,
+      iconColor: DS.colors.positive,
+    },
+    {
+      icon: Users,
+      title: "Koordinasi Kelompok",
+      desc: "Pembagian tugas, revisi dokumen, dan koordinasi jadwal menjadi transparan dan terukur. Setiap anggota bisa berkontribusi secara bersamaan.",
+      checks: [
+        "Pembagian tugas transparan",
+        "Revisi dokumen kolektif",
+      ],
+      iconBg: DS.colors.surfaceContainerHigh,
+      iconColor: DS.colors.tertiaryContainer,
+    },
+  ];
+
   return (
     <section
       className="py-16"
@@ -324,7 +417,7 @@ function FeatureSection() {
           whileInView="visible"
           viewport={{ once: true, margin: "-80px" }}
         >
-          {FEATURES.map((feat, i) => (
+          {features.map((feat, i) => (
             <motion.div
               key={i}
               className="p-7 flex flex-col"
@@ -376,7 +469,7 @@ function FeatureSection() {
   );
 }
 
-/* ─── Stats Section ─── */
+/* ─── Statistik ─── */
 function StatsSection() {
   return (
     <section
@@ -420,7 +513,179 @@ function StatsSection() {
   );
 }
 
-/* ─── Timeline Preview ─── */
+/* ─── Nilai ─── */
+function ValuesSection() {
+  return (
+    <section
+      className="py-14 md:py-20"
+      style={{
+        backgroundColor: DS.colors.surface,
+        borderBottom: `1px solid ${DS.colors.border}`,
+      }}
+    >
+      <div className="max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8">
+        <motion.div
+          className="text-center max-w-[672px] mx-auto mb-10 md:mb-14"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+        >
+          <div
+            className="inline-flex items-center mb-4"
+            style={{ ...sectionLabel, backgroundColor: DS.colors.positiveBg, border: `1px solid ${DS.colors.positiveBorder}` }}
+          >
+            <span
+              className="text-[12px] font-bold uppercase tracking-wider"
+              style={{ color: DS.colors.primaryContainer }}
+            >
+              Prinsip Kerja Kami
+            </span>
+          </div>
+          <h2
+            className="text-2xl md:text-3xl font-extrabold mb-4 leading-tight md:leading-[40px]"
+            style={{ color: DS.colors.onSurface, letterSpacing: "-0.02em" }}
+          >
+            Bagaimana kami membangun platform ini
+          </h2>
+          <p className="text-base" style={{ color: DS.colors.onSurfaceVariant }}>
+            Setiap keputusan platform — fitur, struktur dokumen, workflow monitoring — didasari oleh empat prinsip ini.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6"
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+        >
+          {VALUES.map((value, i) => (
+            <motion.div
+              key={i}
+              className="p-6 flex flex-col"
+              style={{
+                backgroundColor: DS.colors.surfaceContainerLowest,
+                border: `1px solid ${DS.colors.border}`,
+                borderRadius: "1.25rem",
+                boxShadow: DS.shadow.level1,
+              }}
+              variants={fadeUp}
+              whileHover={{ boxShadow: DS.shadow.level2, y: -3 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div
+                className="w-11 h-11 flex items-center justify-center mb-4"
+                style={{
+                  backgroundColor: DS.colors.positiveBg,
+                  border: `1px solid ${DS.colors.positiveBorder}`,
+                  borderRadius: "0.75rem",
+                }}
+              >
+                <value.icon className="w-5 h-5" style={{ color: DS.colors.positive }} />
+              </div>
+              <h3 className="text-base font-bold mb-2" style={{ color: DS.colors.onSurface }}>
+                {value.title}
+              </h3>
+              <p className="text-[13px] leading-[19px]" style={{ color: DS.colors.onSurfaceVariant }}>
+                {value.desc}
+              </p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Tim ─── */
+function TeamSection() {
+  return (
+    <section
+      className="py-14 md:py-20"
+      style={{
+        backgroundColor: DS.colors.surfaceContainerLow,
+        borderBottom: `1px solid ${DS.colors.border}`,
+      }}
+    >
+      <div className="max-w-[1280px] mx-auto px-4 md:px-6 lg:px-8">
+        <motion.div
+          className="text-center mb-10 md:mb-14"
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+        >
+          <div
+            className="inline-flex items-center mb-4"
+            style={{ ...sectionLabel }}
+          >
+            <Users className="w-3.5 h-3.5 mr-1.5" style={{ color: DS.colors.primaryContainer }} />
+            <span
+              className="text-[12px] font-bold uppercase tracking-wider"
+              style={{ color: DS.colors.primaryContainer }}
+            >
+              Anggota Kelompok
+            </span>
+          </div>
+          <h2
+            className="text-2xl md:text-3xl font-extrabold mb-3 leading-tight md:leading-[40px]"
+            style={{ color: DS.colors.onSurface, letterSpacing: "-0.02em" }}
+          >
+            Delapan mahasiswa, satu komitmen
+          </h2>
+          <p className="text-base" style={{ color: DS.colors.onSurfaceVariant }}>
+            Setiap anggota memiliki peran spesifik dalam menjalankan dan mendokumentasikan proyek kewirausahaan kelompok.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="grid grid-cols-2 sm:grid-cols-4 gap-4 md:gap-5"
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+        >
+          {TEAM.map((member, i) => (
+            <motion.div
+              key={i}
+              className="flex flex-col items-center gap-3 p-5"
+              style={{
+                backgroundColor: DS.colors.surfaceContainerLowest,
+                border: `1px solid ${DS.colors.border}`,
+                borderRadius: "1.25rem",
+                boxShadow: DS.shadow.level1,
+              }}
+              variants={fadeUp}
+              whileHover={{ boxShadow: DS.shadow.level2, y: -3 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div
+                className="w-14 h-14 rounded-full flex items-center justify-center font-extrabold text-lg"
+                style={{
+                  backgroundColor: i % 2 === 0 ? DS.colors.primaryContainer : DS.colors.surfaceContainer,
+                  color: i % 2 === 0 ? DS.colors.onPrimary : DS.colors.primaryContainer,
+                }}
+              >
+                {member.initials}
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-bold" style={{ color: DS.colors.onSurface }}>
+                  {member.name}
+                </div>
+                <div className="text-[11px] mt-0.5" style={{ color: DS.colors.outline }}>
+                  {member.role}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Timeline ─── */
 function TimelineSection() {
   return (
     <section
@@ -444,7 +709,7 @@ function TimelineSection() {
               className="text-[12px] font-bold uppercase tracking-wider"
               style={{ color: DS.colors.primaryContainer }}
             >
-              Perjalanan Serifikasi
+              Proses Serifikasi
             </span>
           </div>
           <h2
@@ -454,11 +719,16 @@ function TimelineSection() {
             Dari rencana menuju sertifikasi
           </h2>
           <p className="text-base" style={{ color: DS.colors.onSurfaceVariant }}>
-            Setiap tahapan didokumentasikan secara berkala di platform ini.
+            Setiap tahapan didokumentasikan secara berkala di platform ini untuk memastikan kelengkapan administrasi.
           </p>
         </motion.div>
 
         <div className="relative">
+          {/* Track line */}
+          <div
+            className="absolute left-[19px] top-2 bottom-2 w-[2px] hidden sm:block"
+            style={{ backgroundColor: DS.colors.surfaceContainerHigh }}
+          />
           <div
             className="absolute left-[19px] top-2 w-[2px]"
             style={{
@@ -468,7 +738,7 @@ function TimelineSection() {
           />
 
           <motion.div
-            className="flex flex-col gap-5 md:gap-6"
+            className="flex flex-col gap-8 md:gap-10"
             variants={staggerContainer}
             initial="hidden"
             whileInView="visible"
@@ -476,6 +746,7 @@ function TimelineSection() {
           >
             {MILESTONES.map((m, i) => (
               <motion.div key={i} className="relative flex gap-5 sm:gap-8" variants={fadeUp}>
+                {/* Numbered circle badge */}
                 <div
                   className="relative z-10 w-10 h-10 shrink-0 flex items-center justify-center rounded-full font-bold"
                   style={{
@@ -491,7 +762,7 @@ function TimelineSection() {
                 </div>
 
                 <div
-                  className="flex-1 p-5"
+                  className="flex-1 p-5 md:p-6"
                   style={{
                     backgroundColor: DS.colors.surfaceContainerLowest,
                     border: `1px solid ${DS.colors.border}`,
@@ -514,9 +785,12 @@ function TimelineSection() {
                       {m.period}
                     </span>
                   </div>
-                  <h3 className="text-sm font-bold" style={{ color: DS.colors.onSurface }}>
+                  <h3 className="text-base font-bold mb-1.5" style={{ color: DS.colors.onSurface }}>
                     {m.title}
                   </h3>
+                  <p className="text-[13px] leading-[20px]" style={{ color: DS.colors.onSurfaceVariant }}>
+                    {m.desc}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -527,7 +801,7 @@ function TimelineSection() {
   );
 }
 
-/* ─── CTA Section ─── */
+/* ─── CTA ─── */
 function CTASection() {
   return (
     <motion.section
@@ -574,14 +848,16 @@ function CTASection() {
   );
 }
 
-/* ─── Main Page ─── */
-export default function Home() {
+/* ─── Page ─── */
+export default function TentangKamiPage() {
   return (
     <div className="flex flex-col min-h-screen" style={{ backgroundColor: DS.colors.surface }}>
-      <Navbar active="beranda" />
-      <HeroSection />
-      <FeatureSection />
+      <Navbar active="tentang-kami" />
+      <AboutHero />
+      <MissionSection />
       <StatsSection />
+      <ValuesSection />
+      <TeamSection />
       <TimelineSection />
       <CTASection />
       <Footer />

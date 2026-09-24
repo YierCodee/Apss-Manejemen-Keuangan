@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import FinaroLogo from "@/components/shared/FinaroLogo";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -96,25 +97,6 @@ export default function LoginPage() {
           <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute top-1/4 -right-24 w-80 h-80 bg-teal-400/10 rounded-full blur-3xl pointer-events-none" />
 
-          {/* Top Brand Identity */}
-          <div className="relative z-10">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 bg-emerald-800 border border-emerald-400/20 rounded-xl flex items-center justify-center shadow-inner">
-                <span className="text-white text-2xl font-bold tracking-tight">
-                  N
-                </span>
-              </div>
-              <div>
-                <span className="block text-2xl font-bold tracking-tight text-white leading-none">
-                  NevBank
-                </span>
-                <span className="text-[10px] tracking-wider uppercase font-semibold text-emerald-300/80">
-                  Financial Hub
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Middle: Value Proposition & Preview Card */}
           <div className="relative z-10 my-auto py-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-emerald-200 text-xs font-semibold mb-6 border border-white/10">
@@ -154,7 +136,10 @@ export default function LoginPage() {
                 Rp 68.789,56
               </div>
               <div className="flex items-center gap-2 text-xs text-emerald-200/90 mb-5">
-                <span>&bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 4821</span>
+                <span>
+                  &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull;
+                  &bull;&bull;&bull;&bull; 4821
+                </span>
                 <svg
                   className="w-4 h-4 text-emerald-300 inline"
                   fill="none"
@@ -216,18 +201,9 @@ export default function LoginPage() {
           {/* Top Bar: Mobile Logo + Language Switcher */}
           <header className="w-full flex items-center justify-between pb-6 sm:pb-8">
             {/* Mobile brand logo */}
-            <div className="flex lg:hidden items-center gap-2.5">
-              <div className="w-10 h-10 bg-emerald-800 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-                N
-              </div>
-              <div>
-                <span className="block text-lg font-bold text-slate-900 leading-none">
-                  NevBank
-                </span>
-                <span className="text-[9px] uppercase tracking-wider font-semibold text-emerald-800">
-                  Financial Hub
-                </span>
-              </div>
+            <div className="flex-shrink-0 flex items-center gap-2">
+              <FinaroLogo height={28} />
+              <h1 className="text-xl font-bold text-primary">Finaro</h1>
             </div>
             <div className="hidden lg:block" />
 
@@ -315,7 +291,7 @@ export default function LoginPage() {
                     type="email"
                     id="identifier"
                     name="identifier"
-                    placeholder="nama@nevbank.cc"
+                    placeholder="nama@finaro.id"
                     required
                     value={email}
                     onChange={(e) => {
@@ -457,7 +433,7 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    <span>Masuk ke NevBank</span>
+                    <span>Masuk ke Finaro</span>
                     <svg
                       className="w-4 h-4 transform group-hover:translate-x-1 transition-transform"
                       fill="none"
@@ -538,7 +514,7 @@ export default function LoginPage() {
             {/* Registration Link */}
             <div className="mt-8 text-center">
               <p className="text-xs text-slate-500 font-medium">
-                Belum memiliki akun NevBank?
+                Belum memiliki akun Finaro?
                 <Link
                   href="/register"
                   className="text-emerald-800 font-bold hover:underline ml-1"
@@ -551,7 +527,7 @@ export default function LoginPage() {
 
           {/* Footer Copyright & Terms */}
           <footer className="w-full pt-6 border-t border-slate-200/80 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2">
-            <p>&copy; 2024 NevBank Inc. Hak Cipta Dilindungi.</p>
+            <p>&copy; 2024 Finaro. Hak Cipta Dilindungi.</p>
             <div className="flex items-center gap-4">
               <a href="#" className="hover:text-slate-600 transition-colors">
                 Ketentuan Layanan

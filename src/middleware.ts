@@ -6,6 +6,9 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-change-in-production",
 );
 
+// Session timeout: 20 minutes in milliseconds
+const INACTIVITY_LIMIT = 20 * 60 * 1000;
+
 // Routes that require authentication
 const protectedRoutes = [
   "/dashboard",
@@ -37,6 +40,27 @@ export async function middleware(request: NextRequest) {
 
   const isAuthenticated = payload !== null;
   const role = (payload?.role as string) || "";
+
+  // Check inactivity timeout for authenticated sessions
+  if (isAuthenticated && payload?.lastActivity) {
+    const now = Date.now();
+    const lastActivity = payload.lastActivity as number;
+
+    if (now - lastActivity > INACTIVITY_LIMIT) {
+      // Session expired due to inactivity
+      // Clear the session cookie and redirect to login
+      const loginUrl = new URL("/login", request.url);
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.set("session-token", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 0,
+      });
+      return response;
+    }
+  }
 
   // Protected routes: redirect to /login if not authenticated
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {

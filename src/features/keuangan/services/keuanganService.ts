@@ -53,6 +53,19 @@ export async function getAccounts(): Promise<AccountInfo[]> {
   return res.json();
 }
 
+export interface SummaryData {
+  totalSaldo: number;
+  currentMonth: { pemasukan: number; pengeluaran: number; net: number };
+  previousMonth: { pemasukan: number; pengeluaran: number; net: number };
+  percentageChange: number | null;
+}
+
+export async function getSummary(): Promise<SummaryData> {
+  const res = await fetch("/api/keuangan/summary");
+  if (!res.ok) throw new Error("Failed to fetch summary");
+  return res.json();
+}
+
 export async function getCategories(type?: string): Promise<CategoryInfo[]> {
   const params = type ? `?type=${type}` : "";
   const res = await fetch(`/api/keuangan/categories${params}`);

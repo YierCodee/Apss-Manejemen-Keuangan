@@ -19,6 +19,7 @@ enum Role {
   bendahara     @map("bendahara")
   operasional   @map("operasional")
   pemasaran     @map("pemasaran")
+  member        @map("member")
 
   @@map("Role")
 }

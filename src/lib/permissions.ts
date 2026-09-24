@@ -30,7 +30,7 @@
 // Role, modul, dan aksi
 // ---------------------------------------------------------------------
 
-export const ROLES = ["super_admin", "bendahara", "operasional", "pemasaran"] as const;
+export const ROLES = ["super_admin", "bendahara", "operasional", "pemasaran", "member"] as const;
 export type Role = (typeof ROLES)[number];
 
 // Resource hanya untuk DATA BISNIS KELOMPOK.
@@ -78,6 +78,13 @@ export const PERMISSIONS: Record<Role, Record<Resource, readonly Action[]>> = {
     aset: READ,
     produk_stok: READ,
     penjualan: ALL,
+    users: NONE,
+  },
+  member: {
+    keuangan: NONE,
+    aset: NONE,
+    produk_stok: NONE,
+    penjualan: NONE,
     users: NONE,
   },
 };

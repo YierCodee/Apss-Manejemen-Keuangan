@@ -38,10 +38,12 @@ export function SidebarNavItem({
   label,
   href,
   iconName,
+  isCollapsed = false,
 }: {
   label: string;
   href: string;
   iconName: string;
+  isCollapsed?: boolean;
 }) {
   const pathname = usePathname();
   const isActive = pathname === href;
@@ -52,20 +54,22 @@ export function SidebarNavItem({
       href={href}
       className={cn(
         "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+        isCollapsed && "justify-center px-2",
         isActive
           ? "bg-sidebar-primary text-sidebar-primary-foreground"
           : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
       )}
+      title={isCollapsed ? label : undefined}
     >
       {Icon && (
         <Icon
           className={cn(
-            "h-5 w-5",
+            "h-5 w-5 flex-shrink-0",
             isActive ? "text-white" : "text-sidebar-icon"
           )}
         />
       )}
-      {label}
+      {!isCollapsed && label}
     </Link>
   );
 }

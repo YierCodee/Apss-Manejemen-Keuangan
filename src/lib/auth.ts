@@ -18,6 +18,7 @@ export type SessionPayload = {
   email: string;
   name: string;
   role: Role;
+  lastActivity: number;
 };
 
 /**
@@ -41,6 +42,44 @@ export async function createSession(
     path: "/",
     maxAge: rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24,
   });
+}
+
+/**
+ * Refresh session by updating lastActivity timestamp.
+ * Preserves all existing session data, only updates lastActivity.
+ */
+export async function refreshSession(): Promise<boolean> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token) return false;
+
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const sessionPayload = payload as unknown as SessionPayload;
+
+    // Create new token with updated lastActivity
+    const newToken = await new SignJWT({ ...sessionPayload, lastActivity: Date.now() })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime(
+        // Preserve original expiry by calculating remaining time
+        new Date((payload.exp as number) * 1000),
+      )
+      .sign(JWT_SECRET);
+
+    cookieStore.set(SESSION_COOKIE, newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      // Preserve original maxAge based on original expiry
+      maxAge: Math.floor(((payload.exp as number) * 1000 - Date.now()) / 1000),
+    });
+
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
