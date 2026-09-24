@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Pencil, Trash2, Loader2, Calendar, CreditCard, Tag, FileText, Hash } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Loader2, Calendar, CreditCard, Tag, FileText, Hash, Link2 } from "lucide-react";
 import { getTransaction, updateTransaction, deleteTransaction, getCategories } from "@/features/keuangan/services/keuanganService";
 import { formatCurrency } from "@/features/keuangan/utils/formatCurrency";
 import type { TransactionRecord, CategoryInfo, TransactionFormData } from "@/features/keuangan/types/keuangan.types";
@@ -129,6 +129,15 @@ export default function KeuanganDetailPage() {
     { icon: <Calendar size={14} />, label: "Waktu", value: formattedTime },
     { icon: <FileText size={14} />, label: "Catatan", value: transaction.notes || "—" },
     { icon: <Tag size={14} />, label: "Akun", value: transaction.accountName || "—" },
+    {
+      icon: <Link2 size={14} />,
+      label: "Status RAB",
+      value: transaction.rabSyncMode === "manual"
+        ? `Manual — ${transaction.rabItemName || "—"}` 
+        : transaction.rabSyncMode === "auto"
+          ? "Otomatis (category + nama)"
+          : "Di luar RAB",
+    },
   ];
 
   return (

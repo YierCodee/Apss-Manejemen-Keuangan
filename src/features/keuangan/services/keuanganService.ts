@@ -28,7 +28,10 @@ export async function createTransaction(data: TransactionFormData): Promise<Tran
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to create transaction");
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "Failed to create transaction");
+  }
   return res.json();
 }
 
@@ -38,7 +41,10 @@ export async function updateTransaction(id: string, data: Partial<TransactionFor
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Failed to update transaction");
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error || "Failed to update transaction");
+  }
   return res.json();
 }
 

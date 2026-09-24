@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { unstable_cache } from "next/cache";
 
 // ============================================
 // Types
@@ -256,33 +257,41 @@ export async function getRabProjectById(projectId: string) {
   };
 }
 
+const getRabSummaryData = unstable_cache(
+  async (userId?: string) => {
+    const where = {
+      deletedAt: null,
+      ...(userId ? { createdBy: userId } : {}),
+    };
+
+    const [totalProjects, totalItems, aggregated] = await Promise.all([
+      prisma.rabProject.count({ where }),
+      prisma.rabItem.count({
+        where: { project: where, deletedAt: null },
+      }),
+      prisma.rabProject.aggregate({
+        where,
+        _sum: {
+          totalBudget: true,
+          totalRealization: true,
+        },
+      }),
+    ]);
+
+    return {
+      totalProjects,
+      totalItems,
+      totalBudget: toNumber(aggregated._sum.totalBudget),
+      totalRealization: toNumber(aggregated._sum.totalRealization),
+    };
+  },
+  ["rab-summary"],
+  { revalidate: 60, tags: ["rab-summary"] }
+);
+
 /**
  * Get summary stats for the RAB dashboard.
  */
 export async function getRabSummary(userId?: string) {
-  const where = {
-    deletedAt: null,
-    ...(userId ? { createdBy: userId } : {}),
-  };
-
-  const [totalProjects, totalItems, aggregated] = await Promise.all([
-    prisma.rabProject.count({ where }),
-    prisma.rabItem.count({
-      where: { project: where, deletedAt: null },
-    }),
-    prisma.rabProject.aggregate({
-      where,
-      _sum: {
-        totalBudget: true,
-        totalRealization: true,
-      },
-    }),
-  ]);
-
-  return {
-    totalProjects,
-    totalItems,
-    totalBudget: toNumber(aggregated._sum.totalBudget),
-    totalRealization: toNumber(aggregated._sum.totalRealization),
-  };
+  return getRabSummaryData(userId);
 }

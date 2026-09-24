@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const summaryOnly = searchParams.get("summary") === "true";
+    const categoryId = searchParams.get("categoryId");
 
     if (summaryOnly) {
       const summary = await getRabSummary(session.userId);
@@ -22,6 +23,17 @@ export async function GET(request: NextRequest) {
     }
 
     const projects = await getRabItems(session.userId);
+
+    // If categoryId filter is provided, flatten and filter items
+    if (categoryId) {
+      const filteredItems = projects.flatMap((p) =>
+        p.items
+          .filter((item) => item.category === categoryId)
+          .map((item) => ({ ...item, projectName: p.projectName, projectId: p.id }))
+      );
+      return NextResponse.json(filteredItems);
+    }
+
     return NextResponse.json(projects);
   } catch (error) {
     console.error("GET /api/rab error:", error);
@@ -48,7 +60,6 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     const requiredFields = [
       "posName",
-      "category",
       "priority",
       "quantity",
       "pricePerUnit",
@@ -60,6 +71,14 @@ export async function POST(request: NextRequest) {
           { status: 400 },
         );
       }
+    }
+
+    // Category: either categoryId (existing) or customCategory (new) is required
+    if (!body.categoryId && !body.customCategory) {
+      return NextResponse.json(
+        { error: "Field \"category\" is required" },
+        { status: 400 },
+      );
     }
 
     // Auto-derive current quarter if not provided

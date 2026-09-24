@@ -1,6 +1,70 @@
 import { NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+
+const getCachedSummary = unstable_cache(
+  async (userId: string, _yearMonth: string) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const currentMonthStart = new Date(currentYear, currentMonth, 1);
+    const currentMonthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const prevMonthStart = new Date(prevMonthYear, prevMonth, 1);
+    const prevMonthEnd = new Date(prevMonthYear, prevMonth + 1, 0, 23, 59, 59, 999);
+
+    const [currentMonthData, prevMonthData, allTimeData] = await Promise.all([
+      prisma.transaction.groupBy({
+        by: ["type"],
+        where: { userId, date: { gte: currentMonthStart, lte: currentMonthEnd } },
+        _sum: { totalAmount: true },
+      }),
+      prisma.transaction.groupBy({
+        by: ["type"],
+        where: { userId, date: { gte: prevMonthStart, lte: prevMonthEnd } },
+        _sum: { totalAmount: true },
+      }),
+      prisma.transaction.groupBy({
+        by: ["type"],
+        where: { userId },
+        _sum: { totalAmount: true },
+      }),
+    ]);
+
+    function getSum(data: { type: string; _sum: { totalAmount: unknown } }[], type: string): number {
+      const row = data.find((r) => r.type === type);
+      return row ? Number(row._sum.totalAmount) : 0;
+    }
+
+    const currentPemasukan = getSum(currentMonthData, "pemasukan");
+    const currentPengeluaran = getSum(currentMonthData, "pengeluaran");
+    const currentNet = currentPemasukan - currentPengeluaran;
+
+    const prevPemasukan = getSum(prevMonthData, "pemasukan");
+    const prevPengeluaran = getSum(prevMonthData, "pengeluaran");
+    const prevNet = prevPemasukan - prevPengeluaran;
+
+    const totalSaldo = getSum(allTimeData, "pemasukan") - getSum(allTimeData, "pengeluaran");
+
+    const percentageChange =
+      prevNet !== 0
+        ? Math.round(((currentNet - prevNet) / Math.abs(prevNet)) * 1000) / 10
+        : null;
+
+    return {
+      totalSaldo,
+      currentMonth: { pemasukan: currentPemasukan, pengeluaran: currentPengeluaran, net: currentNet },
+      previousMonth: { pemasukan: prevPemasukan, pengeluaran: prevPengeluaran, net: prevNet },
+      percentageChange,
+    };
+  },
+  ["summary"],
+  { revalidate: 60, tags: ["summary"] }
+);
 
 export async function GET() {
   try {
@@ -9,91 +73,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // yearMonth ensures cache rotates monthly
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-
-    // Current month range
-    const currentMonthStart = new Date(currentYear, currentMonth, 1);
-    const currentMonthEnd = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
-
-    // Previous month range
-    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    const prevMonthStart = new Date(prevMonthYear, prevMonth, 1);
-    const prevMonthEnd = new Date(prevMonthYear, prevMonth + 1, 0, 23, 59, 59, 999);
-
-    const where = { userId: session.userId };
-
-    // Fetch current month transactions
-    const currentTransactions = await prisma.transaction.findMany({
-      where: {
-        ...where,
-        date: { gte: currentMonthStart, lte: currentMonthEnd },
-      },
-      select: { type: true, totalAmount: true },
-    });
-
-    // Fetch previous month transactions
-    const prevTransactions = await prisma.transaction.findMany({
-      where: {
-        ...where,
-        date: { gte: prevMonthStart, lte: prevMonthEnd },
-      },
-      select: { type: true, totalAmount: true },
-    });
-
-    // Fetch all transactions for total saldo
-    const allTransactions = await prisma.transaction.findMany({
-      where,
-      select: { type: true, totalAmount: true },
-    });
-
-    // Calculate current month totals
-    const currentPemasukan = currentTransactions
-      .filter((t) => t.type === "pemasukan")
-      .reduce((sum, t) => sum + Number(t.totalAmount), 0);
-    const currentPengeluaran = currentTransactions
-      .filter((t) => t.type === "pengeluaran")
-      .reduce((sum, t) => sum + Number(t.totalAmount), 0);
-    const currentNet = currentPemasukan - currentPengeluaran;
-
-    // Calculate previous month totals
-    const prevPemasukan = prevTransactions
-      .filter((t) => t.type === "pemasukan")
-      .reduce((sum, t) => sum + Number(t.totalAmount), 0);
-    const prevPengeluaran = prevTransactions
-      .filter((t) => t.type === "pengeluaran")
-      .reduce((sum, t) => sum + Number(t.totalAmount), 0);
-    const prevNet = prevPemasukan - prevPengeluaran;
-
-    // Calculate total saldo (all-time)
-    const totalSaldo = allTransactions.reduce((sum, t) => {
-      if (t.type === "pemasukan") return sum + Number(t.totalAmount);
-      if (t.type === "pengeluaran") return sum - Number(t.totalAmount);
-      return sum;
-    }, 0);
-
-    // Percentage change: net flow comparison
-    const percentageChange =
-      prevNet !== 0
-        ? Math.round(((currentNet - prevNet) / Math.abs(prevNet)) * 1000) / 10
-        : null;
-
-    return NextResponse.json({
-      totalSaldo,
-      currentMonth: {
-        pemasukan: currentPemasukan,
-        pengeluaran: currentPengeluaran,
-        net: currentNet,
-      },
-      previousMonth: {
-        pemasukan: prevPemasukan,
-        pengeluaran: prevPengeluaran,
-        net: prevNet,
-      },
-      percentageChange,
-    });
+    const yearMonth = `${now.getFullYear()}-${now.getMonth()}`;
+    const data = await getCachedSummary(session.userId, yearMonth);
+    return NextResponse.json(data);
   } catch (error) {
     console.error("GET /api/keuangan/summary error:", error);
     return NextResponse.json(

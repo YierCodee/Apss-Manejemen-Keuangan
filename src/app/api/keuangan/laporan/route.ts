@@ -17,7 +17,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch all active/draft RAB projects with their items
+    // Fetch all active/draft RAB projects with their items + category in one query
     const projects = await prisma.rabProject.findMany({
       where: {
         createdBy: session.userId,
@@ -26,25 +26,19 @@ export async function GET() {
       include: {
         items: {
           where: { deletedAt: null },
+          include: { categoryRef: true },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // Fetch categories for item coloring
-    const categoryIds = [
-      ...new Set(
-        projects
-          .flatMap((p) => p.items)
-          .map((item) => item.category)
-          .filter(Boolean)
-      ),
-    ] as string[];
-
-    const categories = categoryIds.length
-      ? await prisma.category.findMany({ where: { id: { in: categoryIds } } })
-      : [];
-    const categoryMap = new Map(categories.map((c) => [c.id, c]));
+    // Build category map from the included relations (no separate query needed)
+    const categoryMap = new Map(
+      projects
+        .flatMap((p) => p.items)
+        .filter((item) => item.categoryRef)
+        .map((item) => [item.category!, item.categoryRef!])
+    );
 
     // Calculate metrics across all projects
     let totalBudget = 0;

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { syncTransactionToRab } from "@/features/rab/services/rabSyncService";
@@ -25,18 +26,15 @@ export async function GET(request: Request) {
 
     const transactions = await prisma.transaction.findMany({
       where,
+      include: {
+        categoryRef: true,
+        rabItem: { select: { id: true, name: true } },
+      },
       orderBy: [{ date: "desc" }, { time: "desc" }],
     });
 
-    // Fetch category info untuk setiap transaksi
-    const categoryIds = [...new Set(transactions.map((t) => t.category).filter(Boolean))] as string[];
-    const categories = categoryIds.length
-      ? await prisma.category.findMany({ where: { id: { in: categoryIds } } })
-      : [];
-    const categoryMap = new Map(categories.map((c) => [c.id, c]));
-
     const serialized = transactions.map((t) => {
-      const cat = t.category ? categoryMap.get(t.category) : null;
+      const cat = t.categoryRef;
       return {
         id: t.id,
         userId: t.userId,
@@ -51,7 +49,9 @@ export async function GET(request: Request) {
         receiptUrl: null,
         categoryId: t.category,
         accountName: t.accountName || null,
-        rabItemId: null,
+        rabItemId: t.rabItemId || null,
+        rabItemName: t.rabItem?.name ?? null,
+        rabSyncMode: t.rabSyncMode,
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
         category: cat
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
 
-    const { name, type, amount, quantity, pricePerUnit, accountName, categoryId, paymentMethod, date, notes } = body;
+    const { name, type, amount, quantity, pricePerUnit, accountName, categoryId, rabItemId, rabSyncMode, paymentMethod, date, notes } = body;
 
     if (!name || !type || !amount || !paymentMethod) {
       return NextResponse.json(
@@ -85,12 +85,41 @@ export async function POST(request: Request) {
       );
     }
 
+    const round2 = (n: number) => Math.round(n * 100) / 100;
     const parsedAmount = parseFloat(String(amount));
-    const parsedQty = quantity ? parseInt(String(quantity), 10) : 1;
-    const parsedPrice = pricePerUnit ? parseFloat(String(pricePerUnit)) : parsedAmount;
+    const parsedQty =
+      quantity !== undefined && quantity !== null && String(quantity).trim() !== ""
+        ? parseInt(String(quantity), 10)
+        : 1;
+    const hasUnitPrice =
+      pricePerUnit !== undefined && pricePerUnit !== null && String(pricePerUnit).trim() !== "";
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return NextResponse.json({ error: "amount must be a positive number" }, { status: 400 });
+    }
+    if (!Number.isInteger(parsedQty) || parsedQty < 1) {
+      return NextResponse.json({ error: "quantity must be a positive integer" }, { status: 400 });
+    }
+
+    // price = harga satuan; totalAmount WAJIB = quantity * price
+    // (CHECK constraint "total_amount_check" di DB)
+    const unitPrice = hasUnitPrice
+      ? parseFloat(String(pricePerUnit))
+      : parsedQty === 1
+        ? parsedAmount
+        : parsedAmount / parsedQty;
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+      return NextResponse.json({ error: "pricePerUnit must be a positive number" }, { status: 400 });
+    }
+    const parsedPrice = round2(unitPrice);
+    const totalAmount = round2(parsedQty * parsedPrice);
 
     // Normalize type to lowercase to match Prisma TransactionType enum
     const normalizedType = String(type).toLowerCase();
+
+    // Normalize rabSyncMode: default to 'none' if not provided or invalid
+    const validSyncModes = ["auto", "manual", "none"];
+    const normalizedSyncMode = validSyncModes.includes(rabSyncMode) ? rabSyncMode : "none";
 
     const transaction = await prisma.transaction.create({
       data: {
@@ -99,23 +128,25 @@ export async function POST(request: Request) {
         type: normalizedType as "pemasukan" | "pengeluaran",
         quantity: parsedQty,
         price: parsedPrice,
-        totalAmount: parsedAmount,
+        totalAmount,
         paymentMethod,
         category: categoryId || null,
+        rabItemId: rabItemId || null,
+        rabSyncMode: normalizedSyncMode as "auto" | "manual" | "none",
         accountName: accountName || null,
         date: date ? new Date(date) : new Date(),
         time: date ? new Date(date) : new Date(),
       },
+      include: {
+        categoryRef: true,
+        rabItem: { select: { id: true, name: true } },
+      },
     });
 
-    // Fetch category info
-    let category = null;
-    if (transaction.category) {
-      const cat = await prisma.category.findUnique({ where: { id: transaction.category } });
-      if (cat) {
-        category = { id: cat.id, name: cat.name, icon: cat.emoji, color: cat.color, bgColor: cat.bgColor };
-      }
-    }
+    const cat = transaction.categoryRef;
+    const category = cat
+      ? { id: cat.id, name: cat.name, icon: cat.emoji, color: cat.color, bgColor: cat.bgColor }
+      : null;
 
     const serialized = {
       id: transaction.id,
@@ -131,28 +162,39 @@ export async function POST(request: Request) {
       receiptUrl: null,
       categoryId: transaction.category,
       accountName: transaction.accountName || null,
-      rabItemId: null,
+      rabItemId: transaction.rabItemId || null,
+      rabItemName: transaction.rabItem?.name ?? null,
+      rabSyncMode: transaction.rabSyncMode,
       createdAt: transaction.createdAt,
       updatedAt: transaction.updatedAt,
       category,
     };
 
     // ============================================
-    // RAB SYNC: Auto-sync pengeluaran → RAB realization
+    // RAB SYNC: Controlled by rabSyncMode
     // ============================================
     let rabSync = null;
-    if (normalizedType === "pengeluaran" && transaction.category) {
+    if (normalizedType === "pengeluaran" && normalizedSyncMode !== "none") {
       try {
         rabSync = await syncTransactionToRab(
           transaction.id,
           transaction.category,
-          parsedAmount,
+          Number(transaction.totalAmount),
           session.userId,
+          transaction.rabSyncMode,
+          transaction.rabItemId,
+          transaction.name,
         );
       } catch (syncError) {
         // Log sync error but don't fail the transaction
         console.error("RAB sync error (non-fatal):", syncError);
       }
+    }
+
+    // Invalidate cached data after mutation
+    revalidateTag("summary", { expire: 0 });
+    if (normalizedType === "pengeluaran") {
+      revalidateTag("rab-summary", { expire: 0 });
     }
 
     return NextResponse.json(

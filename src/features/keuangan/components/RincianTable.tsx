@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import type { LaporanRincianItem } from "../types/keuangan.types";
 
@@ -7,14 +8,23 @@ interface RincianTableProps {
   data: LaporanRincianItem[];
 }
 
-const tabs = [
-  { label: "Semua Kategori", active: true },
-  { label: "Kuliah", active: false },
-  { label: "Biaya Hidup", active: false },
-  { label: "Operasional", active: false },
-];
+const kategoriTabs = ["Semua Kategori", "Kuliah", "Biaya Hidup", "Operasional"];
 
 export function RincianTable({ data }: RincianTableProps) {
+  const [activeKategori, setActiveKategori] = useState("Semua Kategori");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredData = useMemo(() => {
+    return data.filter((item) => {
+      const matchesKategori =
+        activeKategori === "Semua Kategori" || item.kategori === activeKategori;
+      const matchesSearch =
+        searchQuery === "" ||
+        item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesKategori && matchesSearch;
+    });
+  }, [data, activeKategori, searchQuery]);
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       {/* Header */}
@@ -25,7 +35,7 @@ export function RincianTable({ data }: RincianTableProps) {
           </h3>
           <p className="text-xs text-gray-400">
             {data.length > 0
-              ? `Total ${data.length} Pos Anggaran Aktif`
+              ? `Total ${filteredData.length} Pos Anggaran Aktif`
               : "Belum ada data anggaran"}
           </p>
         </div>
@@ -36,6 +46,8 @@ export function RincianTable({ data }: RincianTableProps) {
           <input
             type="text"
             placeholder="Cari nama pos..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-8 pr-3 text-xs text-gray-700 placeholder-gray-400 focus:border-[#064e3b] focus:outline-none"
           />
         </div>
@@ -43,23 +55,24 @@ export function RincianTable({ data }: RincianTableProps) {
 
       {/* Filter Tabs */}
       <div className="mt-4 flex gap-1">
-        {tabs.map((tab) => (
+        {kategoriTabs.map((tab) => (
           <button
-            key={tab.label}
-            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-[10px] font-medium ${
-              tab.active
+            key={tab}
+            onClick={() => setActiveKategori(tab)}
+            className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-[10px] font-medium transition-colors ${
+              activeKategori === tab
                 ? "bg-[#064e3b] text-white"
-                : "bg-gray-100 text-gray-500"
+                : "bg-gray-100 text-gray-500 hover:bg-gray-200"
             }`}
           >
-            {tab.label}
+            {tab}
           </button>
         ))}
       </div>
 
       {/* Table */}
       <div className="mt-4 overflow-x-auto">
-        {data.length > 0 ? (
+        {filteredData.length > 0 ? (
           <table className="w-full min-w-[700px]">
             <thead>
               <tr className="border-b border-gray-100">
@@ -84,7 +97,7 @@ export function RincianTable({ data }: RincianTableProps) {
               </tr>
             </thead>
             <tbody>
-              {data.map((item) => (
+              {filteredData.map((item) => (
                 <tr key={item.id} className="border-b border-gray-100">
                   <td className="px-4 py-3">
                     <div className="flex flex-col">
@@ -145,17 +158,17 @@ export function RincianTable({ data }: RincianTableProps) {
           </table>
         ) : (
           <div className="flex flex-col items-center justify-center py-16">
-            <p className="text-sm font-medium text-gray-500">Belum ada data anggaran</p>
-            <p className="mt-1 text-xs text-gray-400">Buat proyek RAB untuk mulai mengelola anggaran</p>
+            <p className="text-sm font-medium text-gray-500">rincian belum tersedia</p>
+            <p className="mt-1 text-xs text-gray-400">Tidak ada data yang cocok dengan filter</p>
           </div>
         )}
       </div>
 
       {/* Footer */}
-      {data.length > 0 && (
+      {filteredData.length > 0 && (
         <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
           <span className="text-[11px] text-gray-400">
-            Menampilkan {data.length} Pos Anggaran Aktif
+            Menampilkan {filteredData.length} Pos Anggaran Aktif
           </span>
         </div>
       )}

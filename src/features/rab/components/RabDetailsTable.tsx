@@ -5,7 +5,11 @@ import type { RabProjectData, RabItemData } from "@/features/rab/hooks/useRab";
 
 interface RabDetailsTableProps {
   projects: RabProjectData[];
-  items: (RabItemData & { projectName: string; quarter: string; year: number })[];
+  items: (RabItemData & {
+    projectName: string;
+    quarter: string;
+    year: number;
+  })[];
   isLoading: boolean;
   error: string | null;
 }
@@ -17,7 +21,11 @@ interface PriorityStyle {
 }
 
 const PRIORITY_MAP: Record<string, PriorityStyle> = {
-  "on-track": { label: "On Track", color: "text-emerald-700", bg: "bg-emerald-50" },
+  "on-track": {
+    label: "On Track",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50",
+  },
   high: { label: "High", color: "text-rose-700", bg: "bg-rose-50" },
   medium: { label: "Medium", color: "text-amber-700", bg: "bg-amber-50" },
   low: { label: "Low", color: "text-gray-600", bg: "bg-gray-100" },
@@ -66,7 +74,9 @@ export function RabDetailsTable({
 
   // Extract unique categories from items (use categoryName for display)
   const categories = useMemo(() => {
-    const cats = new Set(items.map((item) => item.categoryName).filter(Boolean));
+    const cats = new Set(
+      items.map((item) => item.categoryName).filter(Boolean),
+    );
     return ["Semua Kategori", ...Array.from(cats)] as string[];
   }, [items]);
 
@@ -155,13 +165,19 @@ export function RabDetailsTable({
             </thead>
             <tbody>
               {filteredItems.map((item) => {
-                const pStyle = PRIORITY_MAP[item.priority] ?? PRIORITY_MAP["on-track"];
+                const pStyle =
+                  PRIORITY_MAP[item.priority] ?? PRIORITY_MAP["on-track"];
                 return (
                   <tr key={item.id} className="border-b border-gray-100">
                     <td className="px-4 py-3">
                       <span className="text-xs font-bold text-gray-800">
                         {item.name}
                       </span>
+                      {item.specs && (
+                        <span className="mt-0.5 block text-[11px] leading-tight text-gray-400">
+                          {item.specs}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-3 text-left text-xs font-bold text-gray-600">
                       {item.categoryName || "-"}

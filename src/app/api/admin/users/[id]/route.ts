@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { assertAdmin, AccessError, type Role } from "@/lib/permissions";
@@ -107,6 +108,9 @@ export async function PATCH(
         ...(isActive !== undefined && { isActive }),
       },
     });
+
+    // Invalidate cached user list
+    revalidateTag("admin-users", { expire: 0 });
 
     return NextResponse.json(user);
   } catch (error) {

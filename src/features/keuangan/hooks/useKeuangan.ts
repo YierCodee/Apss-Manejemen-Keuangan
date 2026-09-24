@@ -1,62 +1,75 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import type { TransactionRecord, CategoryInfo, TransactionFormData } from "../types/keuangan.types";
+import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { TransactionRecord, TransactionFormData } from "../types/keuangan.types";
 import * as keuanganService from "../services/keuanganService";
 
 export function useKeuangan() {
-  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
-  const [categories, setCategories] = useState<CategoryInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [filters, setFilters] = useState<{ type?: string; search?: string } | undefined>(undefined);
 
-  const fetchData = useCallback(async (filters?: { type?: string; search?: string }) => {
-    try {
-      const [txns, cats] = await Promise.all([
-        keuanganService.getTransactions(filters),
-        keuanganService.getCategories(),
-      ]);
-      setTransactions(txns);
-      setCategories(cats);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const transactionsQuery = useQuery({
+    queryKey: ["transactions", filters],
+    queryFn: () => keuanganService.getTransactions(filters),
+  });
 
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  const categoriesQuery = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => keuanganService.getCategories(),
+    staleTime: 5 * 60_000,
+  });
 
-  const create = async (data: TransactionFormData) => {
-    const created = await keuanganService.createTransaction(data);
-    setTransactions((prev) => [created, ...prev]);
-    return created;
-  };
+  const createMutation = useMutation({
+    mutationFn: keuanganService.createTransaction,
+    onSuccess: (created) => {
+      queryClient.setQueryData<TransactionRecord[]>(
+        ["transactions", filters],
+        (old) => [created, ...(old ?? [])]
+      );
+      queryClient.invalidateQueries({ queryKey: ["summary"] });
+    },
+  });
 
-  const update = async (id: string, data: Partial<TransactionFormData>) => {
-    const updated = await keuanganService.updateTransaction(id, data);
-    setTransactions((prev) => prev.map((t) => (t.id === id ? updated : t)));
-    return updated;
-  };
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<TransactionFormData> }) =>
+      keuanganService.updateTransaction(id, data),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<TransactionRecord[]>(
+        ["transactions", filters],
+        (old) => old?.map((t) => (t.id === updated.id ? updated : t)) ?? []
+      );
+      queryClient.invalidateQueries({ queryKey: ["summary"] });
+    },
+  });
 
-  const remove = async (id: string) => {
-    await keuanganService.deleteTransaction(id);
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
-  };
+  const deleteMutation = useMutation({
+    mutationFn: keuanganService.deleteTransaction,
+    onSuccess: (_data, id) => {
+      queryClient.setQueryData<TransactionRecord[]>(
+        ["transactions", filters],
+        (old) => old?.filter((t) => t.id !== id) ?? []
+      );
+      queryClient.invalidateQueries({ queryKey: ["summary"] });
+    },
+  });
+
+  const fetchTransactions = useCallback(
+    (newFilters?: { type?: string; search?: string }) => {
+      setFilters(newFilters);
+    },
+    []
+  );
 
   return {
-    transactions,
-    categories,
-    isLoading,
-    error,
-    fetchTransactions: fetchData,
-    create,
-    update,
-    remove,
+    transactions: transactionsQuery.data ?? [],
+    categories: categoriesQuery.data ?? [],
+    isLoading: transactionsQuery.isPending || categoriesQuery.isPending,
+    error: transactionsQuery.error?.message ?? categoriesQuery.error?.message ?? null,
+    fetchTransactions,
+    create: createMutation.mutateAsync,
+    update: (id: string, data: Partial<TransactionFormData>) =>
+      updateMutation.mutateAsync({ id, data }),
+    remove: deleteMutation.mutateAsync,
   };
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 // ============================================
 // Types matching the API response shape
@@ -48,47 +48,37 @@ export interface RabSummaryData {
 // ============================================
 
 export function useRab() {
-  const [projects, setProjects] = useState<RabProjectData[]>([]);
-  const [summary, setSummary] = useState<RabSummaryData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [projectsRes, summaryRes] = await Promise.all([
-        fetch("/api/rab"),
-        fetch("/api/rab?summary=true"),
-      ]);
+  const projectsQuery = useQuery({
+    queryKey: ["rab-projects"],
+    queryFn: async () => {
+      const res = await fetch("/api/rab");
+      if (!res.ok) throw new Error("Gagal memuat data RAB");
+      return res.json() as Promise<RabProjectData[]>;
+    },
+  });
 
-      if (!projectsRes.ok || !summaryRes.ok) {
-        throw new Error("Gagal memuat data RAB");
-      }
+  const summaryQuery = useQuery({
+    queryKey: ["rab-summary"],
+    queryFn: async () => {
+      const res = await fetch("/api/rab?summary=true");
+      if (!res.ok) throw new Error("Gagal memuat ringkasan RAB");
+      return res.json() as Promise<RabSummaryData>;
+    },
+    staleTime: 60_000,
+  });
 
-      const projectsData = await projectsRes.json();
-      const summaryData = await summaryRes.json();
-
-      setProjects(projectsData);
-      setSummary(summaryData);
-      setError(null);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Terjadi kesalahan";
-      setError(message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  const refetch = () => {
+    queryClient.invalidateQueries({ queryKey: ["rab-projects"] });
+    queryClient.invalidateQueries({ queryKey: ["rab-summary"] });
+  };
 
   return {
-    projects,
-    summary,
-    isLoading,
-    error,
-    refetch: fetchData,
+    projects: projectsQuery.data ?? [],
+    summary: summaryQuery.data ?? null,
+    isLoading: projectsQuery.isPending || summaryQuery.isPending,
+    error: projectsQuery.error?.message ?? summaryQuery.error?.message ?? null,
+    refetch,
   };
 }

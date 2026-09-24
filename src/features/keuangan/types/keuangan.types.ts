@@ -8,6 +8,8 @@ export interface TransactionRecord {
   accountName: string | null;
   categoryId: string | null;
   rabItemId: string | null;
+  rabItemName: string | null;
+  rabSyncMode: "auto" | "manual" | "none";
   name: string;
   type: "pemasukan" | "pengeluaran";
   amount: number;
@@ -30,6 +32,8 @@ export interface TransactionFormData {
   pricePerUnit?: number | null;
   accountName?: string | null;
   categoryId?: string | null;
+  rabItemId?: string | null;
+  rabSyncMode?: "auto" | "manual" | "none";
   paymentMethod: string;
   date: string;
   notes?: string | null;
