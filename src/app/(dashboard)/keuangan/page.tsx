@@ -1,8 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CalendarClock, NotebookPen, FileDown, Loader2, FileSpreadsheet, FileText, X } from "lucide-react";
+import { CalendarClock, NotebookPen, FileDown, Loader2, FileSpreadsheet, FileText, X, Check, ChevronDown } from "lucide-react";
+import {
+  parsePeriod,
+  periodLabels,
+  periodOptions,
+  isInPeriod,
+  type Period,
+} from "@/features/keuangan/utils/periodFilter";
 import { exportToPDF, exportToExcel } from "@/features/keuangan/utils/exportTransactions";
 import { useKeuangan } from "@/features/keuangan/hooks/useKeuangan";
 import { KeuanganTable } from "@/features/keuangan/components/KeuanganTable";
@@ -22,6 +29,7 @@ export default function KeuanganPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const urlSearch = searchParams.get("search") ?? "";
+  const activePeriod = parsePeriod(searchParams.get("period"));
 
   const {
     transactions,
@@ -41,6 +49,8 @@ export default function KeuanganPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
+  const [showPeriodMenu, setShowPeriodMenu] = useState(false);
+  const periodMenuRef = useRef<HTMLDivElement>(null);
 
   // Fetch with search param from URL
   useEffect(() => {
@@ -49,46 +59,48 @@ export default function KeuanganPage() {
     }
   }, [urlSearch, fetchTransactions]);
 
-  // Calculate metrics
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  // Calculate metrics based on active period
+  const periodTransactions = useMemo(
+    () => transactions.filter((t) => isInPeriod(t.date, activePeriod)),
+    [transactions, activePeriod]
+  );
 
-  const thisMonthTransactions = transactions.filter((t) => {
-    const d = new Date(t.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  });
-
-  const pemasukanBulanIni = thisMonthTransactions
+  const pemasukanPeriod = periodTransactions
     .filter((t) => t.type === "pemasukan")
     .reduce((sum, t) => sum + t.amount, 0);
-  const pemasukanCount = thisMonthTransactions.filter((t) => t.type === "pemasukan").length;
+  const pemasukanCount = periodTransactions.filter((t) => t.type === "pemasukan").length;
 
-  const pengeluaranBulanIni = thisMonthTransactions
+  const pengeluaranPeriod = periodTransactions
     .filter((t) => t.type === "pengeluaran")
     .reduce((sum, t) => sum + t.amount, 0);
-  const pengeluaranCount = thisMonthTransactions.filter((t) => t.type === "pengeluaran").length;
+  const pengeluaranCount = periodTransactions.filter((t) => t.type === "pengeluaran").length;
 
-  const cashFlowBulanIni = pemasukanBulanIni + pengeluaranBulanIni;
+  const cashFlowPeriod = pemasukanPeriod + pengeluaranPeriod;
 
-  // Close export menu on outside click
+  const periodLabel = periodLabels[activePeriod];
+  const periodLabelUpper = periodLabel.toUpperCase();
+
+  // Close menus on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
         setShowExportMenu(false);
       }
+      if (periodMenuRef.current && !periodMenuRef.current.contains(e.target as Node)) {
+        setShowPeriodMenu(false);
+      }
     }
-    if (showExportMenu) {
+    if (showExportMenu || showPeriodMenu) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-  }, [showExportMenu]);
+  }, [showExportMenu, showPeriodMenu]);
 
-  // Apply filter
+  // Apply period filter first, then type filter
   const filteredTransactions =
     activeFilter === "all"
-      ? transactions
-      : transactions.filter((t) => t.type === activeFilter);
+      ? periodTransactions
+      : periodTransactions.filter((t) => t.type === activeFilter);
 
   const handleFilterChange = (value: string) => {
     setActiveFilter(value);
@@ -98,8 +110,23 @@ export default function KeuanganPage() {
     fetchTransactions(Object.keys(filters).length ? filters : undefined);
   };
 
+  const buildQueryString = (overrides: { search?: string; period?: Period }) => {
+    const params = new URLSearchParams();
+    const search = overrides.search !== undefined ? overrides.search : urlSearch;
+    const period = overrides.period !== undefined ? overrides.period : activePeriod;
+    if (search) params.set("search", search);
+    if (period !== "month") params.set("period", period);
+    const qs = params.toString();
+    return qs ? `/keuangan?${qs}` : "/keuangan";
+  };
+
+  const handlePeriodChange = (period: Period) => {
+    setShowPeriodMenu(false);
+    router.push(buildQueryString({ period }));
+  };
+
   const clearSearch = () => {
-    router.push("/keuangan");
+    router.push(buildQueryString({ search: "" }));
   };
 
   const handleEdit = (id: string) => {
@@ -156,10 +183,34 @@ export default function KeuanganPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow-sm">
-                Bulan Ini
-                <CalendarClock size={14} />
-              </button>
+              <div className="relative" ref={periodMenuRef}>
+                <button
+                  onClick={() => setShowPeriodMenu((prev) => !prev)}
+                  className="flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 shadow-sm hover:bg-gray-50 transition-colors"
+                >
+                  {periodLabel}
+                  <CalendarClock size={14} />
+                  <ChevronDown size={14} className={`transition-transform ${showPeriodMenu ? "rotate-180" : ""}`} />
+                </button>
+                {showPeriodMenu && (
+                  <div className="absolute right-0 top-full z-20 mt-1 w-40 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+                    {periodOptions.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => handlePeriodChange(p)}
+                        className={`flex w-full items-center justify-between px-3 py-2 text-xs transition-colors ${
+                          activePeriod === p
+                            ? "font-semibold text-[#064e3b] bg-emerald-50"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {periodLabels[p]}
+                        {activePeriod === p && <Check size={14} />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={openCreateModal}
                 className="flex items-center gap-1.5 rounded-xl bg-[#064e3b] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#044a38] transition-colors"
@@ -202,7 +253,7 @@ export default function KeuanganPage() {
                     </div>
                   </div>
                   <h2 className="text-xl font-extrabold tracking-tight text-[#0f172a]">
-                    {formatCurrency(cashFlowBulanIni)}
+                    {formatCurrency(cashFlowPeriod)}
                   </h2>
                   <div className="flex items-center gap-2">
                     <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-700">
@@ -215,14 +266,14 @@ export default function KeuanganPage() {
                 <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      PEMASUKAN BULAN INI
+                      PEMASUKAN {periodLabelUpper}
                     </span>
                     <div className="flex size-7 items-center justify-center rounded-full bg-emerald-50">
                       <span className="text-xs font-bold text-emerald-600">↙</span>
                     </div>
                   </div>
                   <h2 className="text-xl font-extrabold tracking-tight text-[#0f172a]">
-                    {formatCurrency(pemasukanBulanIni)}
+                    {formatCurrency(pemasukanPeriod)}
                   </h2>
                   <div className="flex items-center gap-2">
                     <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700">
@@ -236,14 +287,14 @@ export default function KeuanganPage() {
                 <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      PENGELUARAN BULAN INI
+                      PENGELUARAN {periodLabelUpper}
                     </span>
                     <div className="flex size-7 items-center justify-center rounded-full bg-rose-50">
                       <span className="text-xs font-bold text-rose-600">↗</span>
                     </div>
                   </div>
                   <h2 className="text-xl font-extrabold tracking-tight text-[#0f172a]">
-                    {formatCurrency(pengeluaranBulanIni)}
+                    {formatCurrency(pengeluaranPeriod)}
                   </h2>
                   <div className="flex items-center gap-2">
                     <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-semibold text-rose-700">
@@ -347,7 +398,7 @@ export default function KeuanganPage() {
                 {/* Footer */}
                 <div className="flex justify-center border-t border-gray-100 pt-3">
                   <span className="text-xs text-gray-400">
-                    Menampilkan {filteredTransactions.length} dari {transactions.length} Transaksi
+                    Menampilkan {filteredTransactions.length} dari {periodTransactions.length} Transaksi
                   </span>
                 </div>
               </div>

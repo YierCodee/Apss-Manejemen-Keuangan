@@ -5,8 +5,11 @@ import { MoreHorizontal, Wallet } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { useKeuangan } from "@/features/keuangan/hooks/useKeuangan";
 import { formatCurrency } from "@/features/keuangan/utils/formatCurrency";
-
-type Period = "month" | "week" | "today";
+import {
+  isInPeriod,
+  periodLabels,
+  type Period,
+} from "@/features/keuangan/utils/periodFilter";
 
 const CATEGORY_COLORS: Record<string, string> = {};
 
@@ -27,44 +30,6 @@ function getCategoryColor(categoryName: string, index: number): string {
   return color;
 }
 
-function startOfDay(d: Date) {
-  const r = new Date(d);
-  r.setHours(0, 0, 0, 0);
-  return r;
-}
-
-function startOfWeek(d: Date) {
-  const r = new Date(d);
-  const day = r.getDay();
-  const diff = day === 0 ? 6 : day - 1; // Monday start
-  r.setDate(r.getDate() - diff);
-  r.setHours(0, 0, 0, 0);
-  return r;
-}
-
-function startOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-function isInPeriod(dateStr: string, period: Period): boolean {
-  const d = new Date(dateStr);
-  const now = new Date();
-  switch (period) {
-    case "today":
-      return startOfDay(d).getTime() === startOfDay(now).getTime();
-    case "week":
-      return d >= startOfWeek(now);
-    case "month":
-      return d >= startOfMonth(now);
-  }
-}
-
-const periodLabels: Record<Period, string> = {
-  month: "Bulan ini",
-  week: "Minggu ini",
-  today: "Hari ini",
-};
-
 export function ExpenseSummary() {
   const { transactions, isLoading } = useKeuangan();
   const [activePeriod, setActivePeriod] = useState<Period>("month");
@@ -76,13 +41,11 @@ export function ExpenseSummary() {
 
   // Metrics: total by time range
   const metrics = useMemo(() => {
-    const now = new Date();
     let todayTotal = 0;
     let weekTotal = 0;
     let monthTotal = 0;
 
     for (const tx of pengeluaran) {
-      const d = new Date(tx.date);
       if (isInPeriod(tx.date, "today")) todayTotal += tx.amount;
       if (isInPeriod(tx.date, "week")) weekTotal += tx.amount;
       if (isInPeriod(tx.date, "month")) monthTotal += tx.amount;

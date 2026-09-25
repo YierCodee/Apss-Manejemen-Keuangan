@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useRef } from "react";
 
 const MIN_WIDTH = 64; // w-16 = 64px
 const MAX_WIDTH = 320; // w-80 = 320px
@@ -25,6 +25,7 @@ interface SidebarContextType {
   close: () => void;
   width: number;
   setWidth: (width: number | ((prev: number) => number)) => void;
+  commitWidth: () => void;
   toggleCollapse: () => void;
   isCollapsed: boolean;
 }
@@ -34,28 +35,52 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [width, setWidthState] = useState<number>(() => getInitialWidth());
+  const widthRef = useRef(width);
 
   const toggle = useCallback(() => setIsOpen((prev) => !prev), []);
   const close = useCallback(() => setIsOpen(false), []);
 
-  const setWidth = useCallback((newWidth: number | ((prev: number) => number)) => {
-    const resolvedWidth = typeof newWidth === "function" ? newWidth(width) : newWidth;
-    const clamped = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, resolvedWidth));
-    setWidthState(clamped);
+  const setWidth = useCallback(
+    (newWidth: number | ((prev: number) => number)) => {
+      const resolved =
+        typeof newWidth === "function" ? newWidth(widthRef.current) : newWidth;
+      const clamped = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, resolved));
+      widthRef.current = clamped;
+      setWidthState(clamped);
+    },
+    []
+  );
+
+  const commitWidth = useCallback(() => {
     if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, clamped.toString());
+      localStorage.setItem(STORAGE_KEY, String(widthRef.current));
     }
-  }, [width]);
+  }, []);
 
   const toggleCollapse = useCallback(() => {
-    setWidth((prev: number) => (prev > MIN_WIDTH + 20 ? MIN_WIDTH : DEFAULT_WIDTH));
-  }, [setWidth]);
+    const next =
+      widthRef.current > MIN_WIDTH + 20 ? MIN_WIDTH : DEFAULT_WIDTH;
+    widthRef.current = next;
+    setWidthState(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, String(next));
+    }
+  }, []);
 
   const isCollapsed = width <= MIN_WIDTH + 1;
 
   return (
     <SidebarContext.Provider
-      value={{ isOpen, toggle, close, width, setWidth, toggleCollapse, isCollapsed }}
+      value={{
+        isOpen,
+        toggle,
+        close,
+        width,
+        setWidth,
+        commitWidth,
+        toggleCollapse,
+        isCollapsed,
+      }}
     >
       {children}
     </SidebarContext.Provider>

@@ -46,7 +46,8 @@ export function Navbar() {
         {/* Left: Hamburger (mobile) */}
         <button
           onClick={toggle}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors md:hidden"
+          aria-label="Buka menu sidebar"
+          className="flex h-10 w-10 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors md:hidden"
         >
           <Menu className="h-4 w-4 text-muted-foreground" />
         </button>
@@ -69,7 +70,8 @@ export function Navbar() {
           {/* Mobile search icon */}
           <button
             onClick={() => router.push("/keuangan")}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors sm:hidden"
+            aria-label="Cari transaksi"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors sm:hidden"
           >
             <Search className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -81,7 +83,8 @@ export function Navbar() {
           <div className="relative" ref={messageDropdownRef}>
             <button
               onClick={() => setShowMessageDropdown((prev) => !prev)}
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors"
+              aria-label="Pesan"
+              className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors"
             >
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
               {unreadCount > 0 && (
@@ -92,7 +95,7 @@ export function Navbar() {
             </button>
 
             {showMessageDropdown && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-xl">
+              <div className="absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-gray-200 bg-white shadow-xl">
                 <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                   <h3 className="text-sm font-bold text-gray-900">Pesan</h3>
                   {unreadCount > 0 && (
@@ -165,18 +168,22 @@ export function Navbar() {
           </div>
 
           {/* Notification */}
-          <button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors">
+          <button
+            aria-label="Notifikasi"
+            className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors"
+          >
             <Bell className="h-4 w-4 text-muted-foreground" />
             <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-destructive" />
           </button>
 
-{/* Account */}
-            <Link
-              href="/profil"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors"
-            >
-              <User className="h-4 w-4 text-muted-foreground" />
-            </Link>
+          {/* Account */}
+          <Link
+            href="/profil"
+            aria-label="Profil"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors"
+          >
+            <User className="h-4 w-4 text-muted-foreground" />
+          </Link>
         </div>
       </div>
     </header>

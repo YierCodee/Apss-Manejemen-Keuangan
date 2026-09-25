@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useKeuangan } from "@/features/keuangan/hooks/useKeuangan";
 import { formatCurrency } from "@/features/keuangan/utils/formatCurrency";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
@@ -32,12 +33,15 @@ export function RecentTransactions() {
             Semua aktivitas transaksi ada disini
           </p>
         </div>
-        <button className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors">
+        <Link
+          href="/keuangan"
+          className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent transition-colors"
+        >
           Lihat Semua
-        </button>
+        </Link>
       </div>
       <div className="p-4 md:p-6">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:auto] lg:[&::-webkit-scrollbar]:block">
           <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-gray-100">

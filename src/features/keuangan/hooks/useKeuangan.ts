@@ -2,11 +2,13 @@
 
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/contexts/ToastProvider";
 import type { TransactionRecord, TransactionFormData } from "../types/keuangan.types";
 import * as keuanganService from "../services/keuanganService";
 
 export function useKeuangan() {
   const queryClient = useQueryClient();
+  const { addToast } = useToast();
   const [filters, setFilters] = useState<{ type?: string; search?: string } | undefined>(undefined);
 
   const transactionsQuery = useQuery({
@@ -28,6 +30,10 @@ export function useKeuangan() {
         (old) => [created, ...(old ?? [])]
       );
       queryClient.invalidateQueries({ queryKey: ["summary"] });
+      addToast({ type: "success", message: "Transaksi berhasil ditambahkan" });
+    },
+    onError: () => {
+      addToast({ type: "error", message: "Gagal menambahkan transaksi" });
     },
   });
 
@@ -40,6 +46,10 @@ export function useKeuangan() {
         (old) => old?.map((t) => (t.id === updated.id ? updated : t)) ?? []
       );
       queryClient.invalidateQueries({ queryKey: ["summary"] });
+      addToast({ type: "success", message: "Transaksi berhasil diperbarui" });
+    },
+    onError: () => {
+      addToast({ type: "error", message: "Gagal memperbarui transaksi" });
     },
   });
 
@@ -51,6 +61,10 @@ export function useKeuangan() {
         (old) => old?.filter((t) => t.id !== id) ?? []
       );
       queryClient.invalidateQueries({ queryKey: ["summary"] });
+      addToast({ type: "success", message: "Transaksi berhasil dihapus" });
+    },
+    onError: () => {
+      addToast({ type: "error", message: "Gagal menghapus transaksi" });
     },
   });
 

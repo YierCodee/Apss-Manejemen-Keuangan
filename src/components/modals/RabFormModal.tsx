@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Info, ChevronDown } from "lucide-react";
+import { useToast } from "@/contexts/ToastProvider";
 import { cn } from "@/lib/utils";
 
 interface RabFormModalProps {
@@ -84,6 +85,7 @@ const quarterOptions = (() => {
 })();
 
 export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
+  const { addToast } = useToast();
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedQuarter, setSelectedQuarter] = useState(getCurrentQuarter);
@@ -181,8 +183,10 @@ export default function RabFormModal({ isOpen, onClose }: RabFormModalProps) {
       }
 
       onClose();
+      addToast({ type: "success", message: "Pos anggaran berhasil ditambahkan" });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan");
+      addToast({ type: "error", message: "Gagal menyimpan pos anggaran" });
     } finally {
       setIsSaving(false);
     }

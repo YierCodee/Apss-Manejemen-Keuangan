@@ -37,7 +37,7 @@ export function KeuanganTable({ transactions, isLoading, onEdit, onDelete }: Keu
 
   if (isLoading) {
     return (
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:auto] lg:[&::-webkit-scrollbar]:block">
         <table className="w-full min-w-[700px]">
           <thead>
             <tr className="border-b border-gray-100">
@@ -81,7 +81,7 @@ export function KeuanganTable({ transactions, isLoading, onEdit, onDelete }: Keu
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:[-ms-overflow-style:auto] lg:[scrollbar-width:auto] lg:[&::-webkit-scrollbar]:block">
       <table className="w-full min-w-[700px]">
         <thead>
           <tr className="border-b border-gray-100">
